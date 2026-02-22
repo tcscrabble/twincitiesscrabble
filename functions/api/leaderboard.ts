@@ -30,7 +30,7 @@ LEFT JOIN games g
   ON p.id = g.player1_id OR p.id = g.player2_id
 GROUP BY p.id
 ORDER BY wins DESC, total_points DESC;
-
+`;
   const { results } = await env.DB.prepare(sql).all();
 
   return new Response(JSON.stringify(results, null, 2), {
