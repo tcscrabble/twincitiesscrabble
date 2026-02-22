@@ -143,9 +143,16 @@
 <script>
 async function renderLeaderboard() {
   const status = document.getElementById("lbstatus");
-  const table = document.querySelector("#leaderboard-view table tbody");
+  const table = document.getElementById("leaderboardBody");
 
   status.textContent = "Loading...";
+  if (!table) {
+    status.textContent = "Internal error: 
+      leaderboard body not found
+    (leaderboardBody).";
+    return;
+  }
+  
   table.innerHTML = "";
 
   const resp = await fetch("/api/leaderboard");
