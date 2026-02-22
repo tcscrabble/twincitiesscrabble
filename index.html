@@ -147,7 +147,7 @@
 
             const nameTd = document.createElement("td");
             const a = document.createElement("a");
-            a.href = "#"; // later: link to player page
+            a.href = `#player?id=${row.id}`; // later: link to player page
             a.textContent = row.name ?? "";
             nameTd.appendChild(a);
 
