@@ -62,7 +62,7 @@
       </section>
 
       <!-- LEADERBOARD -->
-      <section id="leaderboard">
+      <section id="leaderboard-view">
         <h2>Leaderboard</h2>
         <div class="muted">
           Auto-generated from recorded games. (Right now this is overall; later we can add filters by location/date.)
@@ -85,6 +85,26 @@
         </table>
       </section>
 
+<!-- PLAYER VIEW -->
+<section id="player-view" style="display:none;">
+  <h2>Player</h2>
+  <div id="player-meta" class="muted"></div>
+
+  <table aria-label="Player Games">
+    <thead>
+      <tr>
+        <th>Game ID</th>
+        <th>Round</th>
+        <th>Opponent</th>
+        <th>Your Score</th>
+        <th>Opponent Score</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody id="player-games-body"></tbody>
+  </table>
+</section>
+      
       <!-- HOW IT WORKS -->
       <section id="how-it-works">
         <h2>How It Works</h2>
