@@ -1,57 +1,193 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Twin Cities Scrabble</title>
-</head>
-<body>
-  <h1>Twin Cities Scrabble Leaderboard</h1>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Twin Cities Scrabble</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; line-height: 1.5; }
+      header { border-bottom: 1px solid #ddd; background: #fff; position: sticky; top: 0; }
+      .wrap { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+      .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 16px; }
+      .brand { font-weight: 700; text-decoration: none; color: #111; }
+      nav a { text-decoration: none; color: #333; margin-left: 12px; }
+      nav a:hover { text-decoration: underline; }
+      main { padding: 28px 0 60px; }
+      h1 { margin: 0 0 6px; font-size: 34px; }
+      h2 { margin-top: 42px; font-size: 24px; border-top: 1px solid #eee; padding-top: 24px; }
+      .muted { color: #666; }
+      .card { border: 1px solid #e6e6e6; border-radius: 10px; padding: 16px; background: #fff; }
+      table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+      th, td { border: 1px solid #bbb; padding: 8px 10px; text-align: left; }
+      th { background: #f6f6f6; }
+      .pill { display: inline-block; padding: 2px 8px; border: 1px solid #ddd; border-radius: 999px; font-size: 12px; color: #444; }
+      ul { margin: 8px 0 0 18px; }
+      .footer { margin-top: 50px; padding-top: 18px; border-top: 1px solid #eee; color: #666; font-size: 14px; }
+      .error { color: #b00020; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="nav">
+          <a class="brand" href="#home">Twin Cities Scrabble</a>
+          <nav>
+            <a href="#leaderboard">Leaderboard</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#news">News</a>
+          </nav>
+        </div>
+      </div>
+    </header>
 
-  <table border="1" cellpadding="5" id="leaderboard">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Games</th>
-        <th>Wins</th>
-        <th>Losses</th>
-        <th>Win %</th>
-        <th>Total Points</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <main class="wrap">
+      <!-- HOME -->
+      <section id="home">
+        <h1>Twin Cities Scrabble</h1>
+        <div class="muted">
+          Local clubs, results, and announcements for the Twin Cities Scrabble community.
+          <span class="pill">Work in progress</span>
+        </div>
 
-  <script>
-     fetch('/api/leaderboard')
-    .then(response => response.json())
-    .then(data => {
-      const tbody = document.querySelector('#leaderboard tbody');
+        <div style="height: 14px;"></div>
 
-      data.forEach(player => {
-        const winPct = player.games_played > 0
-          ? ((player.wins / player.games_played) * 100).toFixed(1)
-          : 0;
+        <div class="card">
+          <strong>Quick links</strong>
+          <ul>
+            <li><a href="#leaderboard">View the current leaderboard</a></li>
+            <li><a href="#how-it-works">How our sessions work (rounds, pairings, odd players)</a></li>
+            <li><a href="#news">Upcoming events and announcements</a></li>
+          </ul>
+        </div>
+      </section>
 
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>
-            <a href="/player.html?id=${player.id}">
-              ${player.name}
-            </a>
-          </td>
-          <td>${player.games_played}</td>
-          <td>${player.wins}</td>
-          <td>${player.losses}</td>
-          <td>${winPct}%</td>
-          <td>${player.total_points}</td>
-        `;
-        tbody.appendChild(row);
-      });
-    })
-    .catch(error => {
-      console.error("Error loading leaderboard:", error);
-    });
-  </script>
+      <!-- LEADERBOARD -->
+      <section id="leaderboard">
+        <h2>Leaderboard</h2>
+        <div class="muted">
+          Auto-generated from recorded games. (Right now this is overall; later we can add filters by location/date.)
+        </div>
 
-</body>
+        <div id="lbStatus" class="muted" style="margin-top: 10px;">Loading…</div>
+
+        <table aria-label="Leaderboard">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Games</th>
+              <th>Wins</th>
+              <th>Losses</th>
+              <th>Win %</th>
+              <th>Total Points</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </section>
+
+      <!-- HOW IT WORKS -->
+      <section id="how-it-works">
+        <h2>How It Works</h2>
+        <div class="card">
+          <ul>
+            <li><strong>Games are 1:1.</strong> Each game is always a head-to-head match.</li>
+            <li><strong>We play in rounds.</strong> A round is a “wave” where games start together.</li>
+            <li><strong>Pairings are dynamic.</strong> Pairings for the next round are based on results from previous games.</li>
+            <li><strong>No fixed number of rounds.</strong> Rounds continue as long as people are still playing in the session.</li>
+            <li><strong>Odd number of players:</strong> someone can choose to play <em>two separate games</em> against two different opponents that round/session.</li>
+          </ul>
+          <div class="muted" style="margin-top: 10px;">
+            (If you want, we can formalize the “two games” case in the schema/UI so it’s tracked cleanly.)
+          </div>
+        </div>
+      </section>
+
+      <!-- NEWS -->
+      <section id="news">
+        <h2>News</h2>
+        <div class="card">
+          <div class="muted">Edit this list directly in <code>index.html</code> for now. Later we can pull it from a database or a simple JSON file.</div>
+          <ul>
+            <li><strong>[Example]</strong> Next meetup: TBD — add details here.</li>
+            <li><strong>[Example]</strong> Tournament announcement — add details here.</li>
+            <li><strong>[Example]</strong> New players welcome — add contact info here.</li>
+          </ul>
+        </div>
+      </section>
+
+      <div class="footer">
+        © <span id="year"></span> Twin Cities Scrabble • Built on Cloudflare Pages
+      </div>
+    </main>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      function fmtPct(p) {
+        if (p === null || p === undefined || Number.isNaN(p)) return "";
+        // if API returns 0..1, convert; if it returns 0..100 keep
+        const n = Number(p);
+        const val = n <= 1 ? (n * 100) : n;
+        return val.toFixed(1) + "%";
+      }
+
+      async function loadLeaderboard() {
+        const statusEl = document.getElementById("lbStatus");
+        const tbody = document.getElementById("leaderboardBody");
+
+        try {
+          const resp = await fetch("/api/leaderboard", { headers: { "accept": "application/json" } });
+          if (!resp.ok) throw new Error("API error: " + resp.status);
+
+          const data = await resp.json(); // should be an array
+          tbody.innerHTML = "";
+
+          for (const row of data) {
+            const tr = document.createElement("tr");
+
+            const nameTd = document.createElement("td");
+            const a = document.createElement("a");
+            a.href = "#"; // later: link to player page
+            a.textContent = row.name ?? "";
+            nameTd.appendChild(a);
+
+            const gamesTd = document.createElement("td");
+            gamesTd.textContent = row.games_played ?? "";
+
+            const winsTd = document.createElement("td");
+            winsTd.textContent = row.wins ?? "";
+
+            const lossesTd = document.createElement("td");
+            lossesTd.textContent = row.losses ?? "";
+
+            const winPctTd = document.createElement("td");
+            // if your API already returns win_pct, use it; otherwise compute
+            const winPct = (row.win_pct !== undefined && row.win_pct !== null)
+              ? row.win_pct
+              : ((row.games_played ?? 0) > 0 ? (row.wins ?? 0) / row.games_played : 0);
+            winPctTd.textContent = fmtPct(winPct);
+
+            const pointsTd = document.createElement("td");
+            pointsTd.textContent = row.total_points ?? "";
+
+            tr.appendChild(nameTd);
+            tr.appendChild(gamesTd);
+            tr.appendChild(winsTd);
+            tr.appendChild(lossesTd);
+            tr.appendChild(winPctTd);
+            tr.appendChild(pointsTd);
+
+            tbody.appendChild(tr);
+          }
+
+          statusEl.textContent = "Updated from /api/leaderboard";
+        } catch (err) {
+          statusEl.className = "error";
+          statusEl.textContent = "Could not load leaderboard: " + err.message;
+        }
+      }
+
+      loadLeaderboard();
+    </script>
+  </body>
 </html>
-
