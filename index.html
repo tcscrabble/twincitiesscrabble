@@ -13,6 +13,7 @@
         <th>Games</th>
         <th>Wins</th>
         <th>Losses</th>
+        <th>Win %</th>
         <th>Total Points</th>
       </tr>
     </thead>
@@ -20,22 +21,35 @@
   </table>
 
   <script>
-    fetch('/api/leaderboard')
-      .then(res => res.json())
-      .then(data => {
-        const tbody = document.querySelector('#leaderboard tbody');
-        data.forEach(player => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${player.name}</td>
-            <td>${player.games_played}</td>
-            <td>${player.wins}</td>
-            <td>${player.losses}</td>
-            <td>${player.total_points}</td>
-          `;
-          tbody.appendChild(row);
-        });
+     fetch('/api/leaderboard')
+    .then(response => response.json())
+    .then(data => {
+      const tbody = document.querySelector('#leaderboard tbody');
+
+      data.forEach(player => {
+        const winPct = player.games_played > 0
+          ? ((player.wins / player.games_played) * 100).toFixed(1)
+          : 0;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>
+            <a href="/player.html?id=${player.id}">
+              ${player.name}
+            </a>
+          </td>
+          <td>${player.games_played}</td>
+          <td>${player.wins}</td>
+          <td>${player.losses}</td>
+          <td>${winPct}%</td>
+          <td>${player.total_points}</td>
+        `;
+        tbody.appendChild(row);
       });
+    })
+    .catch(error => {
+      console.error("Error loading leaderboard:", error);
+    });
   </script>
 
 </body>
