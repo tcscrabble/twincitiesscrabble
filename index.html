@@ -141,53 +141,68 @@
     </main>
 
 <script>
-async function renderLeaderboard() {
+
+  async function renderLeaderboard() {
   const status = document.getElementById("lbstatus");
   const table = document.getElementById("leaderboardBody");
 
   status.textContent = "Loading...";
+
   if (!table) {
-    status.textContent = "Internal error: 
-      leaderboard body not found
-    (leaderboardBody).";
-    return;
-  }
-  
-  table.innerHTML = "";
-
-  const resp = await fetch("/api/leaderboard");
-  if (!resp.ok) {
-    status.textContent = "Error loading leaderboard.";
+    status.textContent = "Internal error: leaderboardBody not found.";
     return;
   }
 
-  const data = await resp.json();
-  status.textContent = "";
+  try {
+    table.innerHTML = "";
 
-  for (const row of data) {
-    const tr = document.createElement("tr");
+    const resp = await fetch("/api/leaderboard");
 
-    const nameTd = document.createElement("td");
-    const a = document.createElement("a");
-    a.href = `#player?id=${row.id}`;
-    a.textContent = row.name ?? "";
-    nameTd.appendChild(a);
+    if (!resp.ok) {
+      status.textContent = `Error loading leaderboard (${resp.status}).`;
+      return;
+    }
 
-    const gamesTd = document.createElement("td");
-    gamesTd.textContent = row.games_played ?? "";
+    const data = await resp.json();   // if this throws, we’ll catch it
 
-    const winsTd = document.createElement("td");
-    winsTd.textContent = row.wins ?? "";
+    status.textContent = "";          // clear “Loading…”
 
-    const lossesTd = document.createElement("td");
-    lossesTd.textContent = row.losses ?? "";
+    for (const row of data) {
+      const tr = document.createElement("tr");
 
-    tr.appendChild(nameTd);
-    tr.appendChild(gamesTd);
-    tr.appendChild(winsTd);
-    tr.appendChild(lossesTd);
+      const nameTd = document.createElement("td");
+      const a = document.createElement("a");
+      a.href = `#player?id=${row.id}`;
+      a.textContent = row.name ?? "";
+      nameTd.appendChild(a);
 
-    table.appendChild(tr);
+      const gamesTd = document.createElement("td");
+      gamesTd.textContent = row.games_played ?? row.games ?? "";
+
+      const winsTd = document.createElement("td");
+      winsTd.textContent = row.wins ?? "";
+
+      const lossesTd = document.createElement("td");
+      lossesTd.textContent = row.losses ?? "";
+
+      const winPctTd = document.createElement("td");
+      winPctTd.textContent = row.win_pct ?? row.winPct ?? "";
+
+      const ptsTd = document.createElement("td");
+      ptsTd.textContent = row.total_points ?? row.totalPoints ?? "";
+
+      tr.appendChild(nameTd);
+      tr.appendChild(gamesTd);
+      tr.appendChild(winsTd);
+      tr.appendChild(lossesTd);
+      tr.appendChild(winPctTd);
+      tr.appendChild(ptsTd);
+
+      table.appendChild(tr);
+    }
+  } catch (e) {
+    console.error("Leaderboard render failed:", e);
+    status.textContent = "Error loading leaderboard (see console).";
   }
 }
 
