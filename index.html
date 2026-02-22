@@ -143,9 +143,15 @@
 <script>
 
   async function renderLeaderboard() {
-  const status = document.getElementById("lbstatus");
+  const status = document.getElementById("lbStatus");    
   const table = document.getElementById("leaderboardBody");
 
+  if (!status) {
+      console.error("Internal error:
+                    lbStatus not found.");
+    return;
+  }
+    
   status.textContent = "Loading...";
 
   if (!table) {
