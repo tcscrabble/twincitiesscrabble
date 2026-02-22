@@ -140,74 +140,126 @@
       </div>
     </main>
 
-    <script>
-      document.getElementById("year").textContent = new Date().getFullYear();
+<script>
+async function renderLeaderboard() {
+  const status = document.getElementById("lbstatus");
+  const table = document.querySelector("#leaderboard-view table tbody");
 
-      function fmtPct(p) {
-        if (p === null || p === undefined || Number.isNaN(p)) return "";
-        // if API returns 0..1, convert; if it returns 0..100 keep
-        const n = Number(p);
-        const val = n <= 1 ? (n * 100) : n;
-        return val.toFixed(1) + "%";
-      }
+  status.textContent = "Loading...";
+  table.innerHTML = "";
 
-      async function loadLeaderboard() {
-        const statusEl = document.getElementById("lbStatus");
-        const tbody = document.getElementById("leaderboardBody");
+  const resp = await fetch("/api/leaderboard");
+  if (!resp.ok) {
+    status.textContent = "Error loading leaderboard.";
+    return;
+  }
 
-        try {
-          const resp = await fetch("/api/leaderboard", { headers: { "accept": "application/json" } });
-          if (!resp.ok) throw new Error("API error: " + resp.status);
+  const data = await resp.json();
+  status.textContent = "";
 
-          const data = await resp.json(); // should be an array
-          tbody.innerHTML = "";
+  for (const row of data) {
+    const tr = document.createElement("tr");
 
-          for (const row of data) {
-            const tr = document.createElement("tr");
+    const nameTd = document.createElement("td");
+    const a = document.createElement("a");
+    a.href = `#player?id=${row.id}`;
+    a.textContent = row.name ?? "";
+    nameTd.appendChild(a);
 
-            const nameTd = document.createElement("td");
-            const a = document.createElement("a");
-            a.href = `#player?id=${row.id}`; // later: link to player page
-            a.textContent = row.name ?? "";
-            nameTd.appendChild(a);
+    const gamesTd = document.createElement("td");
+    gamesTd.textContent = row.games_played ?? "";
 
-            const gamesTd = document.createElement("td");
-            gamesTd.textContent = row.games_played ?? "";
+    const winsTd = document.createElement("td");
+    winsTd.textContent = row.wins ?? "";
 
-            const winsTd = document.createElement("td");
-            winsTd.textContent = row.wins ?? "";
+    const lossesTd = document.createElement("td");
+    lossesTd.textContent = row.losses ?? "";
 
-            const lossesTd = document.createElement("td");
-            lossesTd.textContent = row.losses ?? "";
+    tr.appendChild(nameTd);
+    tr.appendChild(gamesTd);
+    tr.appendChild(winsTd);
+    tr.appendChild(lossesTd);
 
-            const winPctTd = document.createElement("td");
-            // if your API already returns win_pct, use it; otherwise compute
-            const winPct = (row.win_pct !== undefined && row.win_pct !== null)
-              ? row.win_pct
-              : ((row.games_played ?? 0) > 0 ? (row.wins ?? 0) / row.games_played : 0);
-            winPctTd.textContent = fmtPct(winPct);
+    table.appendChild(tr);
+  }
+}
 
-            const pointsTd = document.createElement("td");
-            pointsTd.textContent = row.total_points ?? "";
+async function renderPlayer(playerId) {
+  const meta = document.getElementById("player-meta");
+  const tbody = document.getElementById("player-games-body");
 
-            tr.appendChild(nameTd);
-            tr.appendChild(gamesTd);
-            tr.appendChild(winsTd);
-            tr.appendChild(lossesTd);
-            tr.appendChild(winPctTd);
-            tr.appendChild(pointsTd);
+  meta.textContent = "Loading...";
+  tbody.innerHTML = "";
 
-            tbody.appendChild(tr);
-          }
+  const resp = await fetch(`/api/player?id=${playerId}`);
+  if (!resp.ok) {
+    meta.textContent = "Error loading player.";
+    return;
+  }
 
-          statusEl.textContent = "Updated from /api/leaderboard";
-        } catch (err) {
-          statusEl.className = "error";
-          statusEl.textContent = "Could not load leaderboard: " + err.message;
-        }
-      }
+  const data = await resp.json();
 
-      loadLeaderboard();
-    </script>
+  meta.innerHTML = `<strong>${data.player?.name ?? ""}</strong> (id ${data.player?.id ?? ""})`;
+
+  for (const g of data.games ?? []) {
+    const tr = document.createElement("tr");
+
+    const opponentId =
+      g.player1_id === playerId ? g.player2_id : g.player1_id;
+
+    const myScore =
+      g.player1_id === playerId ? g.player1_score : g.player2_score;
+
+    const oppScore =
+      g.player1_id === playerId ? g.player2_score : g.player1_score;
+
+    tr.innerHTML = `
+      <td>${g.id ?? ""}</td>
+      <td>${g.round_id ?? ""}</td>
+      <td>${opponentId ?? ""}</td>
+      <td>${myScore ?? ""}</td>
+      <td>${oppScore ?? ""}</td>
+      <td>${g.created_at ?? ""}</td>
+    `;
+
+    tbody.appendChild(tr);
+  }
+}
+
+function showView(view) {
+  document.getElementById("leaderboard-view").style.display =
+    view === "leaderboard" ? "" : "none";
+
+  document.getElementById("player-view").style.display =
+    view === "player" ? "" : "none";
+}
+
+async function renderRoute() {
+  const hash = window.location.hash;
+
+  if (hash.startsWith("#player")) {
+    const params = new URLSearchParams(hash.split("?")[1]);
+    const id = Number(params.get("id"));
+
+    if (!id) {
+      showView("player");
+      document.getElementById("player-meta").textContent =
+        "Invalid player id.";
+      return;
+    }
+
+    showView("player");
+    await renderPlayer(id);
+    return;
+  }
+
+  showView("leaderboard");
+  await renderLeaderboard();
+}
+
+window.addEventListener("hashchange", renderRoute);
+renderRoute();
+</script>
+    
   </body>
 </html>
