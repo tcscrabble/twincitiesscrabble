@@ -228,29 +228,20 @@ async function renderPlayer(playerId) {
 
   meta.innerHTML = `<strong>${data.player?.name ?? ""}</strong> (id ${data.player?.id ?? ""})`;
 
-  for (const g of data.games ?? []) {
-    const tr = document.createElement("tr");
+for (const g of data.games ?? []) {
+  const tr = document.createElement("tr");
 
-    const opponentId =
-      g.player1_id === playerId ? g.player2_id : g.player1_id;
+  tr.innerHTML = `
+    <td>${g.id ?? ""}</td>
+    <td>${g.round_id ?? ""}</td>
+    <td>${g.opponent_name ?? g.opponent_id ?? ""}</td>
+    <td>${g.my_score ?? ""}</td>
+    <td>${g.opp_score ?? ""}</td>
+    <td>${g.created_at ?? ""}</td>
+  `;
 
-    const myScore =
-      g.player1_id === playerId ? g.player1_score : g.player2_score;
-
-    const oppScore =
-      g.player1_id === playerId ? g.player2_score : g.player1_score;
-
-    tr.innerHTML = `
-      <td>${g.id ?? ""}</td>
-      <td>${g.round_id ?? ""}</td>
-      <td>${opponentId ?? ""}</td>
-      <td>${myScore ?? ""}</td>
-      <td>${oppScore ?? ""}</td>
-      <td>${g.created_at ?? ""}</td>
-    `;
-
-    tbody.appendChild(tr);
-  }
+  tbody.appendChild(tr);
+}
 }
 
 function showView(view) {
