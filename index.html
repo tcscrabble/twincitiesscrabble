@@ -234,7 +234,10 @@ for (const g of data.games ?? []) {
   tr.innerHTML = `
     <td>${g.id ?? ""}</td>
     <td>${g.round_id ?? ""}</td>
-    <td>${g.opponent_name ?? g.opponent_id ?? ""}</td>
+    <td><a href="#player?id=${g.opponent_id ?? ""}">
+    ${g.opponent_name ?? g.opponent_id ?? ""}
+    </a>
+    </td>
     <td>${g.my_score ?? ""}</td>
     <td>${g.opp_score ?? ""}</td>
     <td>${g.created_at ?? ""}</td>
