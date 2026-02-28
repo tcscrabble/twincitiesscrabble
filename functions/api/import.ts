@@ -5,6 +5,8 @@ type Env = {
   IMPORT_TOKEN: string;
 };
 
+const MIN_GAMES_TO_WIPE = 200;
+
 type RawGame = {
   // Accept a few possible field names so the importer is resilient
   date?: string;            // "2026-02-12" or "2/12/2026" etc.
@@ -182,11 +184,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const rawGames = body?.games;
+
+  const wipe = body?.wipe === true;
+  
   if (!Array.isArray(rawGames)) {
     return badRequest("Body must be { games: [...] }");
   }
 
   const { games, warnings } = normalizeGames(rawGames);
+
+  const MIN_GAMES_TO_WIPE = 200; // pick your threshold
+
+  if (wipe && games.length < MIN_GAMES_TO_WIPE) { 
+    return badRequest('Refusing to wipe: only $ {games.length} games provided (minimum ${MIN_GAMES_TO_WIPE})'
+                      );
+  }
 
   // Guardrail: refuse to wipe if nothing to import (optional but useful)
   if (games.length === 0) {
@@ -204,19 +216,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // ---- Wipe + reinsert (NO SQL BEGIN/COMMIT) ----
   try {
+
+    let wiped = false;
+    if (wipe) {
     // Wipe in dependency order
     await db.prepare("DELETE FROM games").run();
     await db.prepare("DELETE FROM rounds").run();
     await db.prepare("DELETE FROM sessions").run();
     await db.prepare("DELETE FROM players").run();
-
+      wiped = true;
+    
     // Reset autoincrement counters (best-effort)
     try {
       await db
         .prepare("DELETE FROM sqlite_sequence WHERE name IN ('players','sessions','rounds','games')")
         .run();
-    } catch {
+      } catch {
       // ignore if sqlite_sequence doesn't exist / permissions etc.
+      }
     }
 
     // ---- Insert players (unique) ----
@@ -328,7 +345,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ok: true,
       received: rawGames.length,
       normalized: games.length,
-      wiped: true,
+      wiped,
       inserted: {
         players: sortedNames.length,
         sessions: sortedSessionKeys.length,
