@@ -40,11 +40,17 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
 
   const { results } = await env.DB.prepare(sql).all();
 
-  return new Response(JSON.stringify(results, null, 2), {
-    headers: {
-      "content-type": "application/json"
-    }
-  });
+  const rows = results.map((r: any) => {
+  const games = Number(r.games) || 0;
+  const wins = Number(r.wins) || 0;
+  const win_pct = games ? Math.round((wins / games) * 1000) / 10 : 0; // 1 decimal
+  return { ...r, win_pct };
+});
+
+return new Response(JSON.stringify({ results: rows }, null, 2), {
+  headers: { "content-type": "application/json" },
+});
+
 };
 
 interface Env {
