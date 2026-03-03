@@ -1,6 +1,7 @@
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   const sql = `
     SELECT
+      1 AS build_signature,
       p.player_id,
       p.name,
       COUNT(g.id) AS games,
