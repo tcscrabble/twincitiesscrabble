@@ -3,7 +3,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     SELECT
       p.id,
       p.name,
-      p.player_id,
+      p.player_id AS player_id,
       COUNT(g.id) AS games_played,
 
       COALESCE(SUM(
