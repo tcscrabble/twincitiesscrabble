@@ -3,6 +3,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     SELECT
       p.id,
       p.name,
+      p.player_id,
       COUNT(g.id) AS games_played,
 
       COALESCE(SUM(
@@ -34,7 +35,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
       ON p.id = g.player1_id
       OR p.id = g.player2_id
 
-    GROUP BY p.id
+    GROUP BY p.id, p.player_id
     ORDER BY wins DESC, total_points DESC;
   `;
 
