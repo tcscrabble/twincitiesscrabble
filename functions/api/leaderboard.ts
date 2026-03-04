@@ -2,6 +2,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   const sql = `
     SELECT
       p.id,
+      p.player_id,
       p.name,
       COUNT(g.id) AS games,
 
@@ -34,7 +35,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
       ON p.id = g.player1_id
       OR p.id = g.player2_id
 
-    GROUP BY p.id, p.name
+    GROUP BY p.id, p.player_id, p.name
     ORDER BY wins DESC, total_points DESC;
   `;
 
