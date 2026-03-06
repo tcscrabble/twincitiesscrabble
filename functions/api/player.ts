@@ -66,14 +66,6 @@ export const onRequestGet = async (context: any) => {
     .bind(playerId, playerId, playerId, playerId, playerId, playerId)
     .all();
 
-  const cleanedGames = results.map((g: any) => ({
-  round: g.round_number,
-  opponent_name: g.opponent,
-  my_score: g.player_score,
-  opp_score: g.opponent_score,
-  session_date: g.session_date
-}));
-
 const cleanedPlayer = {
   id: player.player_id,
   name: player.display_name,
