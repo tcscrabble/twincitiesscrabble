@@ -1,8 +1,7 @@
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   const sql = `
     SELECT
-      p.id,
-      p.player_id,
+      p.player_id as id,
       p.name,
       COUNT(g.id) AS games,
 
