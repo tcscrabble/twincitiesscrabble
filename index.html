@@ -177,8 +177,8 @@
 
       const nameTd = document.createElement("td");
       const a = document.createElement("a");
-      a.href = `#player?id=${row.player_id}`;
-      a.textContent = row.name ?? "";
+      a.href = `#player?id=${row.id ?? row.player_id}`;
+      a.textContent = row.name ??  row.display_name ?? "";
       nameTd.appendChild(a);
 
       const gamesTd = document.createElement("td");
