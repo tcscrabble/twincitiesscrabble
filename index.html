@@ -93,12 +93,11 @@
   <table aria-label="Player Games">
     <thead>
       <tr>
-        <th>Session</th>
-        <th>Round</th>
+        <th data-sort="round">Round</th>
         <th>Opponent</th>
-        <th>Player Score</th>
-        <th>Opponent Score</th>
-        <th>Session Date</th>
+        <th data-sort="my_score">Your Score</th>
+        <th data-sort="opp_score">Opponent Score</th>
+        <th data-sort="session_date">Session Date</th>
       </tr>
     </thead>
     <tbody id="player-games-body"></tbody>
@@ -244,7 +243,9 @@ async function renderPlayer(playerId) {
 `;
 
     tbody.appendChild(tr);
+    
   }
+  enableTableSorting(data.games ?? data.recent ?? []);
 }
 
 function showView(view) {
@@ -254,6 +255,26 @@ function showView(view) {
   document.getElementById("player-view").style.display =
     view === "player" ? "" : "none";
 }
+
+  function enableTableSorting(games) {
+
+    const headers = document.querySelectorAll("th[data-sort]");
+
+    headers.forEach(header => {
+      header.style.cursor = "pointer";
+      header.addEventListener("click", () => {
+        const key = header.dataset.sort;
+        games.sort((a,b) => {
+          if (a[key] < b[key]) return -1;
+          if (a[key] > b[key]) return 1;
+          return 0;
+        });
+
+        renderPlayerGames(games);
+
+      });
+    });
+  }
 
 async function renderRoute() {
   const hash = window.location.hash;
