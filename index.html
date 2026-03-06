@@ -236,7 +236,7 @@ async function renderPlayer(playerId) {
   tr.innerHTML = `
     <td>${g.round_number ?? g.round_id ?? g.round ?? ""}</td>
     <td>${(g.opponent_id ?? "") && (g.opponent ?? g.opponent_name ?? "")
-        ? `<a href="#player$id=${g.opponent_id}">${g.opponent ?? g.opponent_name ?? ""}</a>`
+        ? `<a href="#player?id=${g.opponent_id}">${g.opponent ?? g.opponent_name ?? ""}</a>`
           :(g.opponent ?? g.opponent_name ?? "")
         }</td>
     <td>${g.player_score ?? g.my_score ?? g.your_score ?? ""}</td>
