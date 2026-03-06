@@ -226,13 +226,12 @@ async function renderPlayer(playerId) {
 
   const data = await resp.json();
 
-  const player = await env.DB.prepare(`
-    SELECT player_id, display_name
-    FROM players
-    WHERE player_id = ?
-  `).bind(playerId).first();  
+  const playerName = data.player?.name ?? data.player?.display_name ?? "";
+  const playerIdValue = data.player?.id ?? data.player?.player_id ?? "";
 
-for (const g of data.games ?? data.recent ?? []) {
+  meta.innerHTML = `<strong>${playerName}</strong> (id ${playerIdValue})`;
+
+  for (const g of data.games ?? data.recent ?? []) {
   const tr = document.createElement("tr");
 
   tr.innerHTML = `
