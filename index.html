@@ -234,7 +234,6 @@ async function renderPlayer(playerId) {
   const tr = document.createElement("tr");
 
   tr.innerHTML = `
-    <td>${g.game_id ?? g.id ?? ""}</td>
     <td>${g.round_number ?? g.round_id ?? g.round ?? ""}</td>
     <td>${g.opponent ?? g.opponent_name ?? ""}</td>
     <td>${g.player_score ?? g.my_score ?? g.your_score ?? ""}</td>
