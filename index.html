@@ -210,6 +210,39 @@
   }
 }
 
+async function wireOpponentLinks() {
+  const links = document.querySelectorAll("a[data-opponent-name]");
+
+  for (const link of links) {
+    link.addEventListener("click", async (e) => {
+      e.preventDefault();
+
+      const name = link.dataset.opponentName;
+      if (!name) return;
+
+      try {
+        const resp = await fetch(`/api/searchPlayers?q=${encodeURIComponent(name)}&limit=5`);
+        if (!resp.ok) return;
+
+        const data = await resp.json();
+        const results = data.results ?? [];
+
+        if (!results.length) return;
+
+        const best = results[0];
+        const playerId = best.player_id ?? best.id;
+
+        if (playerId != null) {
+          location.hash = `#player?id=${playerId}`;
+        }
+      } catch (err) {
+        console.error("Opponent lookup failed", err);
+      }
+    });
+  }
+}
+
+
 async function renderPlayer(playerId) {
   const meta = document.getElementById("player-meta");
   const tbody = document.getElementById("player-games-body");
@@ -235,10 +268,11 @@ async function renderPlayer(playerId) {
 
   tr.innerHTML = `
     <td>${g.round_number ?? g.round_id ?? g.round ?? ""}</td>
-    <td>${(g.opponent_id ?? "") && (g.opponent ?? g.opponent_name ?? "")
-        ? `<a href="#player?id=${g.opponent_id}">${g.opponent ?? g.opponent_name ?? ""}</a>`
-          :(g.opponent ?? g.opponent_name ?? "")
-        }</td>
+    <td>${
+      (g.opponent ?? g.opponent_name ?? "")
+        ? `<a href="#" data-opponent-name="${(g.opponent ?? g.opponent_name ?? "").replace(/"/g, "&quot;")}">${g.opponent ?? g.opponent_name ?? ""}</a>`
+        : ""
+    }</td>
     <td>${g.player_score ?? g.my_score ?? g.your_score ?? ""}</td>
     <td>${g.opponent_score ?? g.opp_score ?? ""}</td>
     <td>${g.session_date ?? g.created_at ?? g.created ?? ""}</td>
@@ -248,8 +282,10 @@ async function renderPlayer(playerId) {
     
   }
   enableTableSorting(data.games ?? data.recent ?? []);
+  wireOpponentLinks();
 }
 
+  
 function showView(view) {
   document.getElementById("leaderboard-view").style.display =
     view === "leaderboard" ? "" : "none";
