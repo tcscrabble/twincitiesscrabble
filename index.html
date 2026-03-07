@@ -225,8 +225,8 @@ async function renderPlayer(playerId) {
 
   const data = await resp.json();
 
-  const playerName = data.player?.name ?? "";
-  const playerIdValue = data.player?.id ?? "";
+  const playerName = data.player?.name ?? data.player?.display_name ?? "";
+  const playerIdValue = data.player?.id ?? data.player?.player_id ?? "";
   const s = data.stats ?? {};
 
   meta.innerHTML = `
@@ -240,8 +240,7 @@ async function renderPlayer(playerId) {
       spread ${s.total_spread ?? 0} |
       avg spread ${s.avg_spread ?? 0} |
       PF ${s.points_for ?? 0} |
-      PA ${s.points_against ?? 0} |
-      avg score ${s.avg_score ?? 0}
+      PA ${s.points_against ?? 0}
     </div>
   `;
 
