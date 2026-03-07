@@ -217,7 +217,8 @@ async function renderPlayer(playerId) {
   meta.textContent = "Loading...";
   tbody.innerHTML = "";
 
-  const resp = await fetch(`/api/player?id=${playerId}`);
+  const currentYear = new Date().getFullYear();
+  const resp = await fetch(`/api/player?id=${playerId}&year=${currentYear}`);
   if (!resp.ok) {
     meta.textContent = "Error loading player.";
     return;
@@ -227,10 +228,12 @@ async function renderPlayer(playerId) {
 
   const playerName = data.player?.name ?? data.player?.display_name ?? "";
   const playerIdValue = data.player?.id ?? data.player?.player_id ?? "";
-  const s = data.stats ?? {};
 
+  const s = data.stats ?? {};
+  const year = data.year ?? new Date().getFullYear();
+  
   meta.innerHTML = `
-    <div><strong>${playerName}</strong> (id ${playerIdValue})</div>
+    <div><strong>${playerName}</strong> (id ${playerIdValue}) - ${year}</div>
     <div class="muted">
       ${s.games ?? 0} games |
       ${s.wins ?? 0} wins |
