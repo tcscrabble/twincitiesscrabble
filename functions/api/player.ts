@@ -57,10 +57,10 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         ROUND(AVG(player_score), 1) AS avg_score,
         ROUND(AVG(opponent_score), 1) AS avg_opp_score
       FROM games
-      WHERE player_id = ?
+      WHERE player_id = ? AND subst(session_date, 1, 4) = ?
       `
     )
-      .bind(playerId)
+      .bind(playerId, String(year))
       .first();
 
     const gamesResult = await env.DB.prepare(
