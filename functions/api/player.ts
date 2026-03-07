@@ -1,95 +1,98 @@
-// functions/api/player.ts
-
-export const onRequestGet = async (context: any) => {
-  const { request, env } = context;
-
+export const onRequestGet: PagesFunction = async ({ request, env }) => {
   const url = new URL(request.url);
-  const idStr = url.searchParams.get("id");
+  const rawId = url.searchParams.get("id");
+  const playerId = Number(rawId);
 
-  if (!idStr) {
-    return new Response(JSON.stringify({ error: "Missing id parameter" }, null, 2), {
+  if (!rawId || !Number.isInteger(playerId) || playerId <= 0) {
+    return new Response(JSON.stringify({ error: "Invalid player id" }), {
       status: 400,
       headers: { "content-type": "application/json" },
     });
   }
 
-  const playerId = Number(idStr);
-  if (!Number.isFinite(playerId)) {
-    return new Response(JSON.stringify({ error: "Invalid id parameter" }, null, 2), {
-      status: 400,
-      headers: { "content-type": "application/json" },
-    });
-  }
+  try {
+    const player = await env.DB.prepare(
+      `
+      SELECT player_id AS id, display_name AS name
+      FROM players
+      WHERE player_id = ?
+      `
+    )
+      .bind(playerId)
+      .first();
 
-  // Fetch the player
-  const player = await env.DB.prepare("SELECT id, name FROM players WHERE id = ?")
-    .bind(playerId)
-    .first();
-
-  if (!player) {
-    return new Response(JSON.stringify({ error: "Player not found" }, null, 2), {
-      status: 404,
-      headers: { "content-type": "application/json" },
-    });
-  }
-
-  // Fetch the games for that player (plus derived fields your UI likely wants)
-  // NOTE: Adjust the aliases (my_score/opp_score/opponent_id/etc.) if your index.html expects different names.
-  const gamesResult = await env.DB.prepare(`
-    SELECT
-      g.id,
-      g.round_id,
-      CASE
-        WHEN g.player1_id = ? THEN g.player2_id
-        ELSE g.player1_id
-      END AS opponent_id,
-      p.name AS opponent_name,
-      CASE
-        WHEN g.player1_id = ? THEN g.player1_score
-        ELSE g.player2_score
-      END AS my_score,
-      CASE
-        WHEN g.player1_id = ? THEN g.player2_score
-        ELSE g.player1_score
-      END AS opp_score,
-      g.created_at
-    FROM games g
-    JOIN players p
-      ON p.id = CASE
-        WHEN g.player1_id = ? THEN g.player2_id
-        ELSE g.player1_id
-      END
-    WHERE g.player1_id = ? OR g.player2_id = ?
-    ORDER BY g.created_at DESC
-  `)
-    // 6 placeholders above
-    .bind(playerId, playerId, playerId, playerId, playerId, playerId)
-    .all();
-
-const cleanedPlayer = {
-  id: player.player_id,
-  name: player.display_name,
-};
-
-const cleanedGames = (gamesResult.results ?? []).map((g: any) => ({
-  round: g.round_number,
-  opponent_name: g.opponent,
-  my_score: g.player_score,
-  opp_score: g.opponent_score,
-  session_date: g.session_date,
-}));
-  
-  return new Response(
-    JSON.stringify(
-      {
-        player: cleanedPlayer,
-        games: cleanedGames,
-      },
-      null,
-      2
-    ),
-    {
-      headers: { "content-type": "application/json" },
+    if (!player) {
+      return new Response(JSON.stringify({ error: "Player not found" }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      });
     }
-  );
+
+    const stats = await env.DB.prepare(
+      `
+      SELECT
+        COUNT(*) AS games,
+        SUM(CASE WHEN result = 'W' THEN 1 ELSE 0 END) AS wins,
+        SUM(CASE WHEN result = 'L' THEN 1 ELSE 0 END) AS losses,
+        SUM(CASE WHEN result = 'T' THEN 1 ELSE 0 END) AS ties,
+        ROUND(
+          100.0 * SUM(CASE WHEN result = 'W' THEN 1 ELSE 0 END) / COUNT(*),
+          1
+        ) AS win_pct,
+        SUM(spread) AS total_spread,
+        ROUND(AVG(spread), 1) AS avg_spread,
+        SUM(player_score) AS points_for,
+        SUM(opponent_score) AS points_against,
+        ROUND(AVG(player_score), 1) AS avg_score,
+        ROUND(AVG(opponent_score), 1) AS avg_opp_score
+      FROM games
+      WHERE player_id = ?
+      `
+    )
+      .bind(playerId)
+      .first();
+
+    const gamesResult = await env.DB.prepare(
+      `
+      SELECT
+        g.game_id,
+        g.round_number,
+        g.session_date,
+        g.player_score AS my_score,
+        g.opponent_score AS opp_score,
+        g.spread,
+        o.player_id AS opponent_id,
+        o.display_name AS opponent_name
+      FROM games g
+      JOIN players o
+        ON g.opponent_id = o.player_id
+      WHERE g.player_id = ?
+      ORDER BY g.session_date DESC, g.round_number DESC
+      `
+    )
+      .bind(playerId)
+      .all();
+
+    return new Response(
+      JSON.stringify({
+        player,
+        stats,
+        games: gamesResult.results ?? [],
+      }),
+      {
+        headers: { "content-type": "application/json" },
+      }
+    );
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({
+        error: "Failed to load player",
+        message: err.message,
+      }),
+      {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  }
 };
