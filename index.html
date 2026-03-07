@@ -259,7 +259,7 @@ async function renderPlayer(playerId) {
   }</td>
   <td>${g.player_score ?? g.my_score ?? g.your_score ?? ""}</td>
   <td>${g.opponent_score ?? g.opp_score ?? ""}</td>
-  <td>${g.session_date ?? g.created_at ?? g.created ?? ""}</td>
+  <td>${g.session ?? g.created_at ?? g.created ?? ""}</td>
 `;
 
     tbody.appendChild(tr);
