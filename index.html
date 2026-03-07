@@ -238,7 +238,7 @@ async function renderPlayer(playerId) {
       ${s.ties ?? 0} ties |
       ${s.win_pct ?? 0}% win |
       spread ${s.total_spread ?? 0} |
-      avg spread ${s.avg_spread ?? 0} |
+      avg spread ${(s.avg_spread ?? 0).toFixed?.(1) ?? 0} |
       PF ${s.points_for ?? 0} |
       PA ${s.points_against ?? 0}
     </div>
