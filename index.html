@@ -265,24 +265,25 @@ async function renderPlayer(playerId) {
 
   for (const g of data.games ?? data.recent ?? []) {
   const tr = document.createElement("tr");
-
+  const opponentName = g.opponent ?? g.opponent_name ?? "";
+  const opponentId = g.opponent_id ?? "";
+    
   tr.innerHTML = `
     <td>${g.round_number ?? g.round_id ?? g.round ?? ""}</td>
     <td>${
-      (g.opponent ?? g.opponent_name ?? "")
-        ? `<a href="#" data-opponent-name="${(g.opponent ?? g.opponent_name ?? "").replace(/"/g, "&quot;")}">${g.opponent ?? g.opponent_name ?? ""}</a>`
-        : ""
-    }</td>
-    <td>${g.player_score ?? g.my_score ?? g.your_score ?? ""}</td>
-    <td>${g.opponent_score ?? g.opp_score ?? ""}</td>
-    <td>${g.session_date ?? g.created_at ?? g.created ?? ""}</td>
+      opponentId
+        ? `<a href="#player?id=${opponentId}">${opponentName}</a>`
+        : opponentName
+  }</td>
+  <td>${g.player_score ?? g.my_score ?? g.your_score ?? ""}</td>
+  <td>${g.opponent_score ?? g.opp_score ?? ""}</td>
+  <td>${g.session_date ?? g.created_at ?? g.created ?? ""}</td>
 `;
 
     tbody.appendChild(tr);
     
   }
   enableTableSorting(data.games ?? data.recent ?? []);
-  wireOpponentLinks();
 }
 
   
