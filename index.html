@@ -210,39 +210,6 @@
   }
 }
 
-async function wireOpponentLinks() {
-  const links = document.querySelectorAll("a[data-opponent-name]");
-
-  for (const link of links) {
-    link.addEventListener("click", async (e) => {
-      e.preventDefault();
-
-      const name = link.dataset.opponentName;
-      if (!name) return;
-
-      try {
-        const resp = await fetch(`/api/searchPlayers?q=${encodeURIComponent(name)}&limit=5`);
-        if (!resp.ok) return;
-
-        const data = await resp.json();
-        const results = data.results ?? [];
-
-        if (!results.length) return;
-
-        const best = results[0];
-        const playerId = best.player_id ?? best.id;
-
-        if (playerId != null) {
-          location.hash = `#player?id=${playerId}`;
-        }
-      } catch (err) {
-        console.error("Opponent lookup failed", err);
-      }
-    });
-  }
-}
-
-
 async function renderPlayer(playerId) {
   const meta = document.getElementById("player-meta");
   const tbody = document.getElementById("player-games-body");
