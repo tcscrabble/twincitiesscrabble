@@ -57,7 +57,7 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
       SELECT
         g.game_id,
         g.round_number,
-        g.session_date,
+        g.session_date as session,
         g.player_score AS my_score,
         g.opponent_score AS opp_score,
         g.spread,
