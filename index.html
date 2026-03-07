@@ -225,10 +225,25 @@ async function renderPlayer(playerId) {
 
   const data = await resp.json();
 
-  const playerName = data.player?.name ?? data.player?.display_name ?? "";
-  const playerIdValue = data.player?.id ?? data.player?.player_id ?? "";
+  const playerName = data.player?.name ?? "";
+  const playerIdValue = data.player?.id ?? "";
+  const s = data.stats ?? {};
 
-  meta.innerHTML = `<strong>${playerName}</strong> (id ${playerIdValue})`;
+  meta.innerHTML = `
+    <div><strong>${playerName}</strong> (id ${playerIdValue})</div>
+    <div class="muted">
+      ${s.games ?? 0} games |
+      ${s.wins ?? 0} wins |
+      ${s.losses ?? 0} losses |
+      ${s.ties ?? 0} ties |
+      ${s.win_pct ?? 0}% win |
+      spread ${s.total_spread ?? 0} |
+      avg spread ${s.avg_spread ?? 0} |
+      PF ${s.points_for ?? 0} |
+      PA ${s.points_against ?? 0} |
+      avg score ${s.avg_score ?? 0}
+    </div>
+  `;
 
   for (const g of data.games ?? data.recent ?? []) {
   const tr = document.createElement("tr");
