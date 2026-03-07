@@ -3,6 +3,9 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
   const rawId = url.searchParams.get("id");
   const playerId = Number(rawId);
 
+  const rawYear = url.searchParams.get("year");
+  const year = rawYear ? Number(rawYear) : new Date().getFullYear();
+
   if (!rawId || !Number.isInteger(playerId) || playerId <= 0) {
     return new Response(JSON.stringify({ error: "Invalid player id" }), {
       status: 400,
@@ -10,15 +13,23 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
     });
   }
 
+  if (!Number.isInteger(year) || year < 1900 || year > 3000) {
+    return new Response(JSON.stringify({ error: "Invalid year" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+});
+}
+
   try {
     const player = await env.DB.prepare(
       `
       SELECT player_id AS id, display_name AS name
       FROM players
       WHERE player_id = ?
+      AND substr(session_date, 1, 4) = ?
       `
     )
-      .bind(playerId)
+      .bind(playerId, String(year))
       .first();
 
     if (!player) {
@@ -67,15 +78,17 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
       JOIN players o
         ON g.opponent_id = o.player_id
       WHERE g.player_id = ?
+        AND substr(g.session_date, 1, 4) = ?
       ORDER BY g.session_date DESC, g.round_number DESC
       `
     )
-      .bind(playerId)
+      .bind(playerId, String(year))
       .all();
 
     return new Response(
       JSON.stringify({
         player,
+        year,
         stats,
         games: gamesResult.results ?? [],
       }),
