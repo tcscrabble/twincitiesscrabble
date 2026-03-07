@@ -283,16 +283,17 @@ function showView(view) {
   }
 
 async function renderRoute() {
-  const hash = window.location.hash;
+  const hash = location.hash || "";
 
   if (hash.startsWith("#player")) {
-    const params = new URLSearchParams(hash.split("?")[1]);
-    const id = Number(params.get("id"));
+    const params = new URLSearchParams(hash.split("?")[1] || "");
+    const rawId = params.get("id");
+    const id = Number(rawId);
 
-    if (!id) {
+    if (!rawId || !Number.isInteger(id) || id <= 0) {
       showView("player");
-      document.getElementById("player-meta").textContent =
-        "Invalid player id.";
+      document.getElementById("player-meta").textContent = "Invalid player id.";
+      document.getElementById("player-games-body").innerHTML = "";
       return;
     }
 
