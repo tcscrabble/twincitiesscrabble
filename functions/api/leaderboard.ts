@@ -33,12 +33,23 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     LEFT JOIN games g
       ON p.id = g.player1_id
       OR p.id = g.player2_id
-
+    
+    WHERE substr(g.session_date, 1, 4) = ?
     GROUP BY p.id, p.player_id, p.name
     ORDER BY wins DESC, total_points DESC;
   `;
 
-  const { results } = await env.DB.prepare(sql).all();
+  const url = new URL(request.url);
+  const rawYear = url.searchParams.get("year");
+  const year = rawYear ? Number(rawYear) : new Date().getFullYear();
+  const { results } = await env.DB.prepare(sql).bind(String(year)).all();
+
+  if (!Number.isInteger(year) || year < 1900 || year > 3000) {
+    return new Response(JSON.stringify({ error: "Invalid year" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
 
   const rows = results.map((r: any) => {
   const games = Number(r.games) || 0;
