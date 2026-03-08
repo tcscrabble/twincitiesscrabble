@@ -160,7 +160,8 @@
   try {
     table.innerHTML = "";
 
-    const resp = await fetch("/api/leaderboard");
+    const currentYear = new Date().getFullYear();
+    const resp = await fetch("/api/leaderboard?year=${currentYear}");
 
     if (!resp.ok) {
       status.textContent = `Error loading leaderboard (${resp.status}).`;
