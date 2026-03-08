@@ -1,4 +1,4 @@
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const sql = `
     SELECT
       p.player_id as id,
@@ -42,7 +42,6 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   const url = new URL(request.url);
   const rawYear = url.searchParams.get("year");
   const year = rawYear ? Number(rawYear) : new Date().getFullYear();
-  const { results } = await env.DB.prepare(sql).bind(String(year)).all();
 
   if (!Number.isInteger(year) || year < 1900 || year > 3000) {
     return new Response(JSON.stringify({ error: "Invalid year" }), {
@@ -51,6 +50,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     });
   }
 
+  const { results } = await env.DB.prepare(sql).bind(String(year)).all();
+
   const rows = results.map((r: any) => {
   const games = Number(r.games) || 0;
   const wins = Number(r.wins) || 0;
@@ -58,11 +59,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   return { ...r, win_pct };
 });
 
-return new Response(JSON.stringify({ results: rows }, null, 2), {
-  headers: { "content-type": "application/json" },
-});
-
-};
+return new Response(
+  JSON.stringify({
+    year,
+    results: rows,
+  }),
+  {
+    headers: { "content-type": "application/json" },
+  }
+);
 
 interface Env {
   DB: D1Database;
