@@ -63,6 +63,7 @@
 
       <label for="leaderboardYear">Season:</label>
       <select id="leaderboardYear"></select>
+     
       <!-- LEADERBOARD -->
       <section id="leaderboard-view">
         <h2>Leaderboard</h2>
@@ -143,27 +144,44 @@
 
 <script>
 
-  async function renderLeaderboard() {
-  const status = document.getElementById("lbStatus");    
-  const table = document.getElementById("leaderboardBody");
-
-  if (!status) {
-      console.error("Internal error: lbStatus not found.");
-    return;
-  }
+  async function renderLeaderboard(selectedYear = new Date().getFullYear()) {
     
-  status.textContent = "Loading...";
+    const status = document.getElementById("lbStatus");    
+    const table = document.getElementById("leaderboardBody");
+    const leaderboardYear = document.getElementById("leaderboardYear");
 
-  if (!table) {
-    status.textContent = "Internal error: leaderboardBody not found.";
-    return;
-  }
+    if (leaderboardYear && !leaderboardYear.options.length) {
+      const currentYear = new Date().getFullYear();
 
-  try {
-    table.innerHTML = "";
+      for (let y = currentYear; y >= 2020; y--) {
+        const opt = document.createElement("option");
+        opt.value = String(y);
+        opt.textContent = String(y);
+        leaderboardYear.appendChild(opt);
+      }
+
+      leaderboardYear.addEventListener("change", () => {
+        renderLeaderboard(Number(leaderboardYear.value));
+      });
+    }
+    
+    if (!status) {
+      console.error("Internal error: lbStatus not found.");
+      return;
+    }
+    
+    status.textContent = "Loading...";
+
+    if (!table) {
+      status.textContent = "Internal error: leaderboardBody not found.";
+      return;
+    }
+
+    try {
+      table.innerHTML = "";
 
     const currentYear = new Date().getFullYear();
-    const resp = await fetch(`/api/leaderboard?year=${currentYear}`);
+    const resp = await fetch(`/api/leaderboard?year=${selectedYear}`);
 
     if (!resp.ok) {
       status.textContent = `Error loading leaderboard (${resp.status}).`;
