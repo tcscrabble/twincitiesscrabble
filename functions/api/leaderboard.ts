@@ -68,6 +68,7 @@ return new Response(
     headers: { "content-type": "application/json" },
   }
 );
+};
 
 interface Env {
   DB: D1Database;
