@@ -260,7 +260,7 @@ async function renderPlayer(playerId) {
   const playerIdValue = data.player?.id ?? data.player?.player_id ?? "";
 
   const s = data.stats ?? {};
-  const year = data.year ?? new Date().getFullYear();
+  const year = Number(data.year) || selectedYear;
   const yearOptions = [];
   for (let y = currentYear; y >= 2000; y--) {
     yearOptions.push(
