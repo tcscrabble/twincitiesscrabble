@@ -143,54 +143,63 @@
 
 <script>
 
-async function renderLeaderboard(selectedYear = 2026) {
+  async function renderLeaderboard(selectedYear = new Date().getFullYear()) {
+    
+    const status = document.getElementById("lbStatus");    
+    const table = document.getElementById("leaderboardBody");
+    const leaderboardYear = document.getElementById("leaderboardYear");
 
-  const status = document.getElementById("lbStatus");
-  const table = document.getElementById("leaderboardBody");
-  const leaderboardYear = document.getElementById("leaderboardYear");
+    if (leaderboardYear && !leaderboardYear.options.length) {
+      const currentYear = new Date().getFullYear();
 
-  if (leaderboardYear && !leaderboardYear.options.length) {
-    const opt = document.createElement("option");
-    opt.value = "2026";
-    opt.textContent = "2026";
-    leaderboardYear.appendChild(opt);
-    leaderboardYear.value = "2026";
-  }
+      for (let y = currentYear; y >= 2020; y--) {
+        const opt = document.createElement("option");
+        opt.value = String(y);
+        opt.textContent = String(y);
+        leaderboardYear.appendChild(opt);
+      }
 
-  if (!status) {
-    console.error("Internal error: lbStatus not found.");
-    return;
-  }
+      leaderboardYear.addEventListener("change", () => {
+        renderLeaderboard(Number(leaderboardYear.value));
+      });
+    }
+    
+    if (!status) {
+      console.error("Internal error: lbStatus not found.");
+      return;
+    }
+    
+    status.textContent = "Loading...";
 
-  status.textContent = "Loading...";
+    if (!table) {
+      status.textContent = "Internal error: leaderboardBody not found.";
+      return;
+    }
 
-  if (!table) {
-    status.textContent = "Internal error: leaderboardBody not found.";
-    return;
-  }
+    try {
+      table.innerHTML = "";
 
-  try {
-    table.innerHTML = "";
-
-    if (leaderboardYear) leaderboardYear.value = "2026";
-    const resp = await fetch(`/api/leaderboard?year=2026`);
+    const currentYear = new Date().getFullYear();
+    const params = new URLSearchParams(location.hash.split("?")[1] || "");
+    const selectedYear = Number(params.get("year")) || currentYear;
+    const resp = await fetch(`/api/leaderboard?year=${selectedYear}`);
 
     if (!resp.ok) {
       status.textContent = `Error loading leaderboard (${resp.status}).`;
       return;
     }
 
-    const data = await resp.json();
+    const data = await resp.json();   // if this throws, we’ll catch it
 
-    status.textContent = "";
+    status.textContent = "";          // clear “Loading…”
 
     for (const row of data.results) {
       const tr = document.createElement("tr");
 
       const nameTd = document.createElement("td");
       const a = document.createElement("a");
-      a.href = `#player?id=${row.id ?? row.player_id}&year=2026`;
-      a.textContent = row.name ?? row.display_name ?? "";
+      a.href = `#player?id=${row.id ?? row.player_id}&year=${selectedYear}`;
+      a.textContent = row.name ??  row.display_name ?? "";
       nameTd.appendChild(a);
 
       const gamesTd = document.createElement("td");
@@ -248,8 +257,8 @@ async function renderPlayer(playerId) {
   const playerIdValue = data.player?.id ?? data.player?.player_id ?? "";
 
   const s = data.stats ?? {};
-  const year = 2026;
-  const yearOptions = [`<option value="2026" selected>2026</option>`];
+  const year = data.year ?? new Date().getFullYear();
+  const yearOptions = [];
   for (let y = currentYear; y >= 2000; y--) {
     yearOptions.push(
       `<option value="${y}" ${y === year ? "selected" : ""}>${y}</option>`
@@ -277,7 +286,8 @@ async function renderPlayer(playerId) {
 
   const yearSelect = document.getElementById("yearSelect");
   if (yearSelect) {
-    yearSelect.disabled = true;
+    yearSelect.addEventListener("change", () => {
+      location.hash = `#player?id=${playerId}&year=${yearSelect.value}`;
     });
   }
   
@@ -290,7 +300,7 @@ async function renderPlayer(playerId) {
     <td>${g.round_number ?? g.round_id ?? g.round ?? ""}</td>
     <td>${
       opponentId
-        ? `<a href="#player?id=${opponentId}&year=2026">${opponentName}</a>`
+        ? `<a href="#player?id=${opponentId}">${opponentName}</a>`
         : opponentName
   }</td>
   <td>${g.player_score ?? g.my_score ?? g.your_score ?? ""}</td>
@@ -311,9 +321,6 @@ function showView(view) {
 
   document.getElementById("player-view").style.display =
     view === "player" ? "" : "none";
-
-  document.getElementById("home").style.display = 
-    view === "leaderboard" ? "" : "none";
 }
 
   function enableTableSorting(games) {
