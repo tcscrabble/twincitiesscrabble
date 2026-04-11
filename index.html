@@ -251,7 +251,6 @@ async function renderPlayer(playerId) {
 
   const s = data.stats ?? {};
   const year = data.year ?? new Date().getFullYear();
-  const yearOptions = [];
   const yearOptions = [`<option value="2026" selected>2026</option>`];
   
   meta.innerHTML = `
@@ -289,7 +288,7 @@ async function renderPlayer(playerId) {
     <td>${g.round_number ?? g.round_id ?? g.round ?? ""}</td>
     <td>${
       opponentId
-        ? `<a href="#player?id=${opponentId}">${opponentName}</a>`
+        ? `<a href="#player?id=${opponentId}&year=2026">${opponentName}</a>`
         : opponentName
   }</td>
   <td>${g.player_score ?? g.my_score ?? g.your_score ?? ""}</td>
