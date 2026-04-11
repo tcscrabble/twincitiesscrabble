@@ -188,7 +188,14 @@ if (leaderboardYear && !leaderboardYear.options.length) {
 
     status.textContent = "";          // clear “Loading…”
 
-    for (const row of data.results) {
+    const rows = Array.isArray(data.results) ? data.results : [];
+      
+    if (!rows.length) {
+      status.textContent = "No data found.";
+      return;
+    }
+    
+    for (const row of rows) {
       const tr = document.createElement("tr");
 
       const nameTd = document.createElement("td");
@@ -313,7 +320,7 @@ function showView(view) {
 
   function enableTableSorting(games) {
 
-    const headers = document.querySelectorAll("th[data-sort]");
+    const headers = document.querySelectorAll("#player-view th[data-sort]");
 
     headers.forEach(header => {
       header.style.cursor = "pointer";
