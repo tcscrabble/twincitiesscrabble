@@ -26,7 +26,6 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
       SELECT player_id AS id, display_name AS name
       FROM players
       WHERE player_id = ?
-      AND substr(session_date, 1, 4) = ?
       `
     )
       .bind(playerId, String(year))
@@ -57,7 +56,7 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         ROUND(AVG(player_score), 1) AS avg_score,
         ROUND(AVG(opponent_score), 1) AS avg_opp_score
       FROM games
-      WHERE player_id = ? AND subst(session_date, 1, 4) = ?
+      WHERE player_id = ? AND substr(session_date, 1, 4) = ?
       `
     )
       .bind(playerId, String(year))
@@ -72,6 +71,7 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         g.player_score AS my_score,
         g.opponent_score AS opp_score,
         g.spread,
+        g.result,
         o.player_id AS opponent_id,
         o.display_name AS opponent_name
       FROM games g
