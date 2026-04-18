@@ -218,6 +218,13 @@ async function renderLeaderboard(club, selectedYear = new Date().getFullYear()) 
   }
 }
 
+function showView(view) {
+  document.getElementById("leaderboard-view").style.display =
+    view === "leaderboard" ? "" : "none";
+  document.getElementById("player-view").style.display =
+    view === "player" ? "" : "none";
+}
+  
 async function renderRoute() {
   const hash = location.hash || "";
 
