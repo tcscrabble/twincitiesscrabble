@@ -28,7 +28,7 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
       WHERE player_id = ?
       `
     )
-      .bind(playerId, String(year))
+      .bind(playerId)
       .first();
 
     if (!player) {
