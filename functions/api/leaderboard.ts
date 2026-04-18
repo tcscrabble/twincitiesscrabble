@@ -2,6 +2,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url);
   const rawYear = url.searchParams.get("year");
   const year = rawYear ? Number(rawYear) : new Date().getFullYear();
+  const club = url.searchParams.get("club") ?? null; // e.g. "NM" or "DAY"
 
   if (!Number.isInteger(year) || year < 1900 || year > 3000) {
     return new Response(JSON.stringify({ error: "Invalid year" }), {
@@ -9,6 +10,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       headers: { "content-type": "application/json" },
     });
   }
+
+  // Club filter is optional — if omitted, returns all clubs combined
+  const clubFilter = club ? `AND c.club_key = ?` : "";
 
   const sql = `
     SELECT
@@ -22,13 +26,20 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     LEFT JOIN games g
       ON g.player_id = p.player_id
       AND substr(g.session_date, 1, 4) = ?
+    LEFT JOIN clubs c
+      ON g.club_id = c.club_id
+    ${clubFilter}
     GROUP BY p.player_id, p.display_name
     HAVING games > 0
     ORDER BY wins DESC, total_points DESC;
   `;
 
   try {
-    const { results } = await env.DB.prepare(sql).bind(String(year)).all();
+    const stmt = club
+      ? env.DB.prepare(sql).bind(String(year), club)
+      : env.DB.prepare(sql).bind(String(year));
+
+    const { results } = await stmt.all();
 
     const rows = (results as any[]).map((r) => {
       const games = Number(r.games) || 0;
@@ -38,7 +49,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     });
 
     return new Response(
-      JSON.stringify({ year, results: rows }),
+      JSON.stringify({ year, club: club ?? "all", results: rows }),
       { headers: { "content-type": "application/json" } }
     );
 
