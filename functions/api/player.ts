@@ -20,6 +20,8 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
 });
 }
 
+  // redeploy check: player endpoint should include club_key 
+  
   try {
     const player = await env.DB.prepare(
       `
