@@ -103,11 +103,13 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
   } catch (err: any) {
     return new Response(
       JSON.stringify({
-        error: "Failed to load player",
-        message: err.message,
+        debug_player_version: "club_key_v1",
+        player,
+        year,
+        stats,
+        games: gamesResult.results ?? [],
       }),
       {
-        status: 500,
         headers: { "content-type": "application/json" },
       }
     );
