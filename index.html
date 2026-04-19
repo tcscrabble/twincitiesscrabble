@@ -144,35 +144,36 @@
 
 <script>
 
+<script>
 async function renderLeaderboard(club, selectedYear = new Date().getFullYear()) {
   const status = document.getElementById("lbStatus");
   const table = document.getElementById("leaderboardBody");
   const leaderboardYear = document.getElementById("leaderboardYear");
   const title = document.getElementById("leaderboardTitle");
 
-  // Set title based on club
   if (title) {
-    title.textContent = club === "NM" ? "North Metro Leaderboard"
-                      : club === "DAY" ? "Daytime Leaderboard"
-                      : "Leaderboard";
+    title.textContent =
+      club === "NM" ? "North Metro Leaderboard" :
+      club === "DAY" ? "Daytime Leaderboard" :
+      "Leaderboard";
   }
 
-  // Populate year dropdown once
   if (leaderboardYear && !leaderboardYear.options.length) {
     const currentYear = new Date().getFullYear();
     for (let y = currentYear; y >= 2026; y--) {
-      // intentionally limited to 2026 until historical data is complete
       const opt = document.createElement("option");
       opt.value = String(y);
       opt.textContent = String(y);
       leaderboardYear.appendChild(opt);
     }
+
     leaderboardYear.addEventListener("change", () => {
       renderLeaderboard(club, Number(leaderboardYear.value));
     });
   }
 
   if (leaderboardYear) leaderboardYear.value = String(selectedYear);
+
   status.textContent = "Loading...";
   table.innerHTML = "";
 
@@ -182,11 +183,20 @@ async function renderLeaderboard(club, selectedYear = new Date().getFullYear()) 
       status.textContent = `Error loading leaderboard (${resp.status}).`;
       return;
     }
+
     const data = await resp.json();
+    const rows = Array.isArray(data.results) ? data.results : [];
+
     status.textContent = "";
 
-    for (const row of data.results) {
+    if (!rows.length) {
+      status.textContent = "No leaderboard data found.";
+      return;
+    }
+
+    for (const row of rows) {
       const tr = document.createElement("tr");
+
       const nameTd = document.createElement("td");
       const a = document.createElement("a");
       a.href = `#player?id=${row.id}&year=${selectedYear}&club=${club}`;
@@ -195,12 +205,16 @@ async function renderLeaderboard(club, selectedYear = new Date().getFullYear()) 
 
       const gamesTd = document.createElement("td");
       gamesTd.textContent = row.games ?? "";
+
       const winsTd = document.createElement("td");
       winsTd.textContent = row.wins ?? "";
+
       const lossesTd = document.createElement("td");
       lossesTd.textContent = row.losses ?? "";
+
       const winPctTd = document.createElement("td");
       winPctTd.textContent = row.win_pct ?? "";
+
       const ptsTd = document.createElement("td");
       ptsTd.textContent = row.total_points ?? "";
 
@@ -210,6 +224,7 @@ async function renderLeaderboard(club, selectedYear = new Date().getFullYear()) 
       tr.appendChild(lossesTd);
       tr.appendChild(winPctTd);
       tr.appendChild(ptsTd);
+
       table.appendChild(tr);
     }
   } catch (e) {
@@ -218,13 +233,100 @@ async function renderLeaderboard(club, selectedYear = new Date().getFullYear()) 
   }
 }
 
+async function renderPlayer(playerId) {
+  const meta = document.getElementById("player-meta");
+  const tbody = document.getElementById("player-games-body");
+
+  const hash = location.hash || "";
+  const params = new URLSearchParams(hash.split("?")[1] || "");
+  const rawYear = params.get("year");
+  const year = rawYear ? Number(rawYear) : new Date().getFullYear();
+  const club = params.get("club") || "NM";
+
+  meta.textContent = "Loading...";
+  tbody.innerHTML = "";
+
+  try {
+    const resp = await fetch(`/api/player?id=${playerId}&year=${year}`);
+    if (!resp.ok) {
+      meta.textContent = `Error loading player (${resp.status}).`;
+      return;
+    }
+
+    const data = await resp.json();
+
+    const playerName = data.player?.name ?? "";
+    const playerIdValue = data.player?.id ?? "";
+    const s = data.stats ?? {};
+    const games = Array.isArray(data.games) ? data.games : [];
+
+    meta.innerHTML = `
+      <div>
+        <strong>${playerName}</strong> (id ${playerIdValue})
+        &nbsp; Season:
+        <select id="yearSelect">
+          <option value="2026" ${year === 2026 ? "selected" : ""}>2026</option>
+        </select>
+        &nbsp; <a href="#leaderboard-${club === "DAY" ? "day" : "nm"}">Back to leaderboard</a>
+      </div>
+      <div class="muted">
+        ${s.games ?? 0} games |
+        ${s.wins ?? 0} wins |
+        ${s.losses ?? 0} losses |
+        ${s.ties ?? 0} ties |
+        ${s.win_pct ?? 0}% win |
+        spread ${s.total_spread ?? 0} |
+        avg spread ${s.avg_spread ?? 0} |
+        PF ${s.points_for ?? 0} |
+        PA ${s.points_against ?? 0}
+      </div>
+    `;
+
+    const yearSelect = document.getElementById("yearSelect");
+    if (yearSelect) {
+      yearSelect.addEventListener("change", () => {
+        location.hash = `#player?id=${playerId}&year=${yearSelect.value}&club=${club}`;
+      });
+    }
+
+    for (const g of games) {
+      const tr = document.createElement("tr");
+
+      const round = g.round_number ?? "";
+      const opponentName = g.opponent_name ?? "";
+      const opponentId = g.opponent_id ?? "";
+      const myScore = g.my_score ?? "";
+      const oppScore = g.opp_score ?? "";
+      const sessionDate = g.session_date ?? g.session ?? "";
+
+      tr.innerHTML = `
+        <td>${round}</td>
+        <td>${
+          opponentId
+            ? `<a href="#player?id=${opponentId}&year=${year}&club=${club}">${opponentName}</a>`
+            : opponentName
+        }</td>
+        <td>${myScore}</td>
+        <td>${oppScore}</td>
+        <td>${sessionDate}</td>
+      `;
+
+      tbody.appendChild(tr);
+    }
+  } catch (e) {
+    console.error("Player render failed:", e);
+    meta.textContent = "Error loading player (see console).";
+  }
+}
+
 function showView(view) {
   document.getElementById("leaderboard-view").style.display =
     view === "leaderboard" ? "" : "none";
+
   document.getElementById("player-view").style.display =
     view === "player" ? "" : "none";
 }
-  
+
 async function renderRoute() {
   const hash = location.hash || "";
 
@@ -232,24 +334,25 @@ async function renderRoute() {
     const params = new URLSearchParams(hash.split("?")[1] || "");
     const rawId = params.get("id");
     const id = Number(rawId);
+
     if (!rawId || !Number.isInteger(id) || id <= 0) {
       showView("player");
       document.getElementById("player-meta").textContent = "Invalid player id.";
       document.getElementById("player-games-body").innerHTML = "";
       return;
     }
+
     showView("player");
     await renderPlayer(id);
     return;
   }
 
-  // Leaderboard routes
   showView("leaderboard");
+
   if (hash.startsWith("#leaderboard-day")) {
-    await renderLeaderboard("DAY");
+    await renderLeaderboard("DAY", 2026);
   } else {
-    // Default: North Metro (also handles #leaderboard-nm and bare #leaderboard)
-    await renderLeaderboard("NM");
+    await renderLeaderboard("NM", 2026);
   }
 }
 
