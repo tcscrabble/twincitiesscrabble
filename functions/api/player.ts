@@ -66,8 +66,8 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
       `
       SELECT
         g.game_id,
-        g.round_number,
         g.session_date as session,
+        c.club_key,
         g.player_score AS my_score,
         g.opponent_score AS opp_score,
         g.spread,
@@ -77,9 +77,11 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
       FROM games g
       JOIN players o
         ON g.opponent_id = o.player_id
+      JOIN clubs c
+        ON g.club_id = c.club_id
       WHERE g.player_id = ?
         AND substr(g.session_date, 1, 4) = ?
-      ORDER BY g.session_date DESC, g.round_number DESC
+      ORDER BY g.session_date DESC, g.game_id DESC
       `
     )
       .bind(playerId, String(year))
