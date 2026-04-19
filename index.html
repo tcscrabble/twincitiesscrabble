@@ -55,7 +55,7 @@
         <div class="card">
           <strong>Quick links</strong>
           <ul>
-            <li><a href="#leaderboard">View the current leaderboard</a></li>
+            <li><a href="#leaderboard-nm">View the current leaderboard</a></li>
             <li><a href="#how-it-works">How our sessions work (rounds, pairings, odd players)</a></li>
             <li><a href="#news">Upcoming events and announcements</a></li>
           </ul>
@@ -96,7 +96,7 @@
   <table aria-label="Player Games">
     <thead>
       <tr>
-        <th data-sort="round">Round</th>
+        <th>Club</th>
         <th>Opponent</th>
         <th data-sort="my_score">Your Score</th>
         <th data-sort="opp_score">Opponent Score</th>
@@ -290,24 +290,29 @@ async function renderPlayer(playerId) {
     for (const g of games) {
       const tr = document.createElement("tr");
 
-      const round = g.round_number ?? "";
-      const opponentName = g.opponent_name ?? "";
-      const opponentId = g.opponent_id ?? "";
-      const myScore = g.my_score ?? "";
-      const oppScore = g.opp_score ?? "";
-      const sessionDate = g.session_date ?? g.session ?? "";
-
-      tr.innerHTML = `
-        <td>${round}</td>
-        <td>${
-          opponentId
-            ? `<a href="#player?id=${opponentId}&year=${year}&club=${club}">${opponentName}</a>`
-            : opponentName
-        }</td>
-        <td>${myScore}</td>
-        <td>${oppScore}</td>
-        <td>${sessionDate}</td>
-      `;
+    const clubCode = g.club_key ?? "";
+    const clubLabel =
+      clubCode === "NM" ? "North Metro" :
+      clubCode === "DAY" ? "Daytime" :
+      clubCode;
+    
+    const opponentName = g.opponent_name ?? "";
+    const opponentId = g.opponent_id ?? "";
+    const myScore = g.my_score ?? "";
+    const oppScore = g.opp_score ?? "";
+    const sessionDate = g.session_date ?? g.session ?? "";
+    
+    tr.innerHTML = `
+      <td>${clubLabel}</td>
+      <td>${
+        opponentId
+          ? `<a href="#player?id=${opponentId}&year=${year}&club=${clubCode}">${opponentName}</a>`
+          : opponentName
+      }</td>
+      <td>${myScore}</td>
+      <td>${oppScore}</td>
+      <td>${sessionDate}</td>
+    `;
 
       tbody.appendChild(tr);
     }
