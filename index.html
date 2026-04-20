@@ -288,32 +288,37 @@ async function renderPlayer(playerId) {
     }
 
     for (const g of games) {
+      console.log("Processing game:", g);
       const tr = document.createElement("tr");
-
-    const clubCode = g.club_key ?? "";
-    const clubLabel =
-      clubCode === "NM" ? "North Metro" :
-      clubCode === "DAY" ? "Daytime" :
-      clubCode;
     
-    const opponentName = g.opponent_name ?? "";
-    const opponentId = g.opponent_id ?? "";
-    const myScore = g.my_score ?? "";
-    const oppScore = g.opp_score ?? "";
-    const sessionDate = g.session_date ?? g.session ?? "";
+      const clubCode = g.club_key ?? "";
+      console.log("Club code from game:", clubCode);
+      
+      const clubLabel =
+        clubCode === "NM" ? "North Metro" :
+        clubCode === "DAY" ? "Daytime" :
+        clubCode;
+      
+      console.log("Club label:", clubLabel);
+      
+      const opponentName = g.opponent_name ?? "";
+      const opponentId = g.opponent_id ?? "";
+      const myScore = g.my_score ?? "";
+      const oppScore = g.opp_score ?? "";
+      const sessionDate = g.session_date ?? g.session ?? "";
+      
+      tr.innerHTML = `
+        <td>${clubLabel}</td>
+        <td>${
+          opponentId
+            ? `<a href="#player?id=${opponentId}&year=${year}&club=${clubCode}">${opponentName}</a>`
+            : opponentName
+        }</td>
+        <td>${myScore}</td>
+        <td>${oppScore}</td>
+        <td>${sessionDate}</td>
+      `;
     
-    tr.innerHTML = `
-      <td>${clubLabel}</td>
-      <td>${
-        opponentId
-          ? `<a href="#player?id=${opponentId}&year=${year}&club=${clubCode}">${opponentName}</a>`
-          : opponentName
-      }</td>
-      <td>${myScore}</td>
-      <td>${oppScore}</td>
-      <td>${sessionDate}</td>
-    `;
-
       tbody.appendChild(tr);
     }
   } catch (e) {
