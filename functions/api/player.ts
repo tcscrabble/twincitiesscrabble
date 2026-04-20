@@ -66,31 +66,31 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
       .bind(playerId, String(year))
       .first();
 
-    gamesResult = await env.DB.prepare(
-      `
-      SELECT
-        g.game_id,
-        g.session_date as session,
-        g.round_number,
-        c.club_key,
-        g.player_score AS my_score,
-        g.opponent_score AS opp_score,
-        g.spread,
-        g.result,
-        o.player_id AS opponent_id,
-        o.display_name AS opponent_name
-      FROM games g
-      JOIN players o
-        ON g.opponent_id = o.player_id
-      JOIN clubs c
-        ON g.club_id = c.club_id
-      WHERE g.player_id = ?
-        AND substr(g.session_date, 1, 4) = ?
-      ORDER BY g.session_date DESC, g.game_id DESC
-      `
-    )
-      .bind(playerId, String(year))
-      .all();
+      gamesResult = await env.DB.prepare(
+        `
+        SELECT
+          g.game_id,
+          g.session_date AS session_date,
+          g.round_number,
+          c.club_key,
+          g.player_score AS my_score,
+          g.opponent_score AS opp_score,
+          g.spread,
+          g.result,
+          o.player_id AS opponent_id,
+          o.display_name AS opponent_name
+        FROM games g
+        JOIN players o
+          ON g.opponent_id = o.player_id
+        JOIN clubs c
+          ON g.club_id = c.club_id
+        WHERE g.player_id = ?
+          AND substr(g.session_date, 1, 4) = ?
+        ORDER BY g.session_date DESC, g.game_id DESC
+        `
+      )
+        .bind(playerId, String(year))
+        .all();
 
     return new Response(
       JSON.stringify({
@@ -107,11 +107,13 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
     console.error("Player API error:", err);
     return new Response(
       JSON.stringify({
-        error: "Failed to fetch player data",
-        debug_player_version: "club_key_v1",
+        debug_player_version: "club_key_v2",
+        player,
+        year,
+        stats,
+        games: gamesResult.results ?? [],
       }),
       {
-        status: 500,
         headers: { "content-type": "application/json" },
       }
     );
