@@ -144,12 +144,12 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
           CASE
             WHEN g.player_id = ? THEN g.player_score
             ELSE g.opponent_score
-          END AS player_score,
+          END AS my_score,
       
           CASE
             WHEN g.player_id = ? THEN g.opponent_score
             ELSE g.player_score
-          END AS opponent_score
+          END AS opp_score
       
         FROM games g
         JOIN clubs c
