@@ -107,7 +107,7 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
     console.error("Player API error:", err);
     return new Response(
       JSON.stringify({
-        debug_player_version: "club_key_v2",
+        source: "NEW_PLAYER_TS",
         player,
         year,
         stats,
