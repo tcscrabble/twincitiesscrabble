@@ -288,19 +288,15 @@ async function renderPlayer(playerId) {
     }
 
     for (const g of games) {
-      console.log("Processing game:", g);
       const tr = document.createElement("tr");
     
       const clubCode = g.club_key ?? "";
-      console.log("Club code from game:", clubCode);
       
       const clubLabel =
         clubCode === "NM" ? "North Metro" :
         clubCode === "DAY" ? "Daytime" :
         clubCode;
-      
-      console.log("Club label:", clubLabel);
-      
+            
       const opponentName = g.opponent_name ?? "";
       const opponentId = g.opponent_id ?? "";
       const myScore = g.my_score ?? "";
