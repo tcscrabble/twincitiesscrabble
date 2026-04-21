@@ -6,9 +6,9 @@ export const onRequestGet: PagesFunction = async (context) => {
 
     return new Response(
       JSON.stringify({
-        status: "ok",
-        database: check ? "connected" : "unknown",
-        time: new Date().toISOString()
+        ok: true,
+        source: "pages-functions",
+        timestamp: new Date().toISOString()
       }),
       { headers: { "content-type": "application/json" } }
     );
