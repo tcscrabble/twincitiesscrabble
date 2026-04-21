@@ -239,8 +239,8 @@ async function renderPlayer(playerId) {
   const params = new URLSearchParams(hash.split("?")[1] || "");
   const rawYear = params.get("year");
   const year = rawYear ? Number(rawYear) : new Date().getFullYear();
-  const club = params.get("club") || "NM";
-
+  const club = params.get("club") || "ALL";
+  
   meta.textContent = "Loading...";
   tbody.innerHTML = "";
 
@@ -255,9 +255,88 @@ async function renderPlayer(playerId) {
 
     const playerName = data.player?.name ?? "";
     const playerIdValue = data.player?.id ?? "";
-    const s = data.stats ?? {};
     const games = Array.isArray(data.games) ? data.games : [];
 
+    function summarizeGames(rows) {
+      const gamesCount = rows.length;
+      const wins = rows.filter(g => g.result === "W").length;
+      const losses = rows.filter(g => g.result === "L").length;
+      const ties = rows.filter(g => g.result === "T").length;
+      const totalSpread = rows.reduce((sum, g) => sum + (Number(g.spread) || 0), 0);
+      const pointsFor = rows.reduce((sum, g) => sum + (Number(g.my_score) || 0), 0);
+      const pointsAgainst = rows.reduce((sum, g) => sum + (Number(g.opp_score) || 0), 0);
+      const winPct = gamesCount ? Math.round((wins / gamesCount) * 1000) / 10 : 0;
+      const avgSpread = gamesCount ? Math.round((totalSpread / gamesCount) * 100) / 100 : 0;
+    
+      return {
+        games: gamesCount,
+        wins,
+        losses,
+        ties,
+        win_pct: winPct,
+        total_spread: totalSpread,
+        avg_spread: avgSpread,
+        points_for: pointsFor,
+        points_against: pointsAgainst
+      };
+    }
+    
+    function renderPlayerGames(rows, selectedClub) {
+      tbody.innerHTML = "";
+    
+      const filteredGames = selectedClub === "ALL"
+        ? rows
+        : rows.filter(g => g.club_key === selectedClub);
+    
+      const stats = summarizeGames(filteredGames);
+      const statsLine = document.getElementById("player-stats-line");
+    
+      if (statsLine) {
+        statsLine.textContent =
+          `${stats.games} games | ` +
+          `${stats.wins} wins | ` +
+          `${stats.losses} losses | ` +
+          `${stats.ties} ties | ` +
+          `${stats.win_pct}% win | ` +
+          `spread ${stats.total_spread} | ` +
+          `avg spread ${stats.avg_spread} | ` +
+          `PF ${stats.points_for} | ` +
+          `PA ${stats.points_against}`;
+      }
+    
+      for (const g of filteredGames) {
+        const tr = document.createElement("tr");
+    
+        const clubCode = g.club_key ?? "";
+        const clubLabel =
+          clubCode === "NM" ? "North Metro" :
+          clubCode === "DAY" ? "Daytime" :
+          clubCode;
+    
+        const opponentName = g.opponent_name ?? "";
+        const opponentId = g.opponent_id ?? "";
+        const myScore = g.my_score ?? "";
+        const oppScore = g.opp_score ?? "";
+        const sessionDate = g.session_date ?? "";
+    
+        tr.innerHTML = `
+          <td>${clubLabel}</td>
+          <td>${
+            opponentId
+              ? `<a href="#player?id=${opponentId}&year=${year}&club=${selectedClub}">${opponentName}</a>`
+              : opponentName
+          }</td>
+          <td>${myScore}</td>
+          <td>${oppScore}</td>
+          <td>${sessionDate}</td>
+        `;
+    
+        tbody.appendChild(tr);
+      }
+    }
+
+    const clubFilter = club === "NM" || club === "DAY" ? club : "ALL";
+    
     meta.innerHTML = `
       <div>
         <strong>${playerName}</strong> (id ${playerIdValue})
@@ -265,57 +344,33 @@ async function renderPlayer(playerId) {
         <select id="yearSelect">
           <option value="2026" ${year === 2026 ? "selected" : ""}>2026</option>
         </select>
-        &nbsp; <a href="#leaderboard-${club === "DAY" ? "day" : "nm"}">Back to leaderboard</a>
+        &nbsp; Club:
+        <select id="clubFilter">
+          <option value="ALL" ${clubFilter === "ALL" ? "selected" : ""}>All</option>
+          <option value="NM" ${clubFilter === "NM" ? "selected" : ""}>North Metro</option>
+          <option value="DAY" ${clubFilter === "DAY" ? "selected" : ""}>Daytime</option>
+        </select>
+        &nbsp; <a href="#leaderboard-${clubFilter === "DAY" ? "day" : "nm"}">Back to leaderboard</a>
       </div>
-      <div class="muted">
-        ${s.games ?? 0} games |
-        ${s.wins ?? 0} wins |
-        ${s.losses ?? 0} losses |
-        ${s.ties ?? 0} ties |
-        ${s.win_pct ?? 0}% win |
-        spread ${s.total_spread ?? 0} |
-        avg spread ${s.avg_spread ?? 0} |
-        PF ${s.points_for ?? 0} |
-        PA ${s.points_against ?? 0}
-      </div>
+      <div id="player-stats-line" class="muted"></div>
     `;
 
     const yearSelect = document.getElementById("yearSelect");
     if (yearSelect) {
       yearSelect.addEventListener("change", () => {
-        location.hash = `#player?id=${playerId}&year=${yearSelect.value}&club=${club}`;
+        const selectedClub = document.getElementById("clubFilter")?.value || clubFilter;
+        location.hash = `#player?id=${playerId}&year=${yearSelect.value}&club=${selectedClub}`;
       });
     }
 
-    for (const g of games) {
-      const tr = document.createElement("tr");
+    renderPlayerGames(games, clubFilter);
     
-      const clubCode = g.club_key ?? "";
-      
-      const clubLabel =
-        clubCode === "NM" ? "North Metro" :
-        clubCode === "DAY" ? "Daytime" :
-        clubCode;
-            
-      const opponentName = g.opponent_name ?? "";
-      const opponentId = g.opponent_id ?? "";
-      const myScore = g.my_score ?? "";
-      const oppScore = g.opp_score ?? "";
-      const sessionDate = g.session_date ?? g.session ?? "";
-      
-      tr.innerHTML = `
-        <td>${clubLabel}</td>
-        <td>${
-          opponentId
-            ? `<a href="#player?id=${opponentId}&year=${year}&club=${clubCode}">${opponentName}</a>`
-            : opponentName
-        }</td>
-        <td>${myScore}</td>
-        <td>${oppScore}</td>
-        <td>${sessionDate}</td>
-      `;
-    
-      tbody.appendChild(tr);
+    const clubFilterSelect = document.getElementById("clubFilter");
+    if (clubFilterSelect) {
+      clubFilterSelect.addEventListener("change", () => {
+        const selectedClub = clubFilterSelect.value;
+        location.hash = `#player?id=${playerId}&year=${year}&club=${selectedClub}`;
+      });
     }
   } catch (e) {
     console.error("Player render failed:", e);
