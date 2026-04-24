@@ -91,18 +91,18 @@
         box-shadow: var(--shadow);
       }
 
-      .hero::after {
-        content: "";
+      .mn-silhouette {
         position: absolute;
-        right: clamp(-34px, -5vw, -10px);
-        top: 18px;
-        width: min(42vw, 360px);
-        height: min(52vw, 450px);
+        right: clamp(-56px, -7vw, -18px);
+        top: clamp(14px, 3vw, 34px);
+        width: min(43vw, 360px);
         opacity: 0.12;
-        background: var(--green);
-        clip-path: polygon(45% 0%, 59% 8%, 60% 19%, 70% 25%, 66% 39%, 78% 48%, 71% 60%, 80% 73%, 61% 82%, 55% 100%, 39% 87%, 28% 89%, 27% 74%, 17% 63%, 24% 45%, 19% 31%, 31% 21%, 32% 8%);
-        transform: rotate(-5deg);
+        color: var(--green);
+        transform: rotate(-2deg);
+        pointer-events: none;
       }
+
+      .mn-silhouette svg { display: block; width: 100%; height: auto; }
 
       .hero-content { position: relative; z-index: 1; max-width: 720px; }
 
@@ -218,7 +218,7 @@
         nav a { font-size: 14px; }
         main { padding-top: 16px; }
         .hero { border-radius: 20px; padding: 20px 14px; }
-        .hero::after { width: 220px; height: 280px; right: -70px; top: 70px; }
+        .mn-silhouette { width: 210px; right: -82px; top: 72px; opacity: 0.08; }
         .grid.two, .grid.three { grid-template-columns: 1fr; }
         .card { padding: 15px; border-radius: 16px; }
         h2 { margin-top: 32px; }
@@ -261,9 +261,17 @@
           <p class="hero-subtitle">Follow Twin Cities club standings, explore player results, and find places to play tournament-style Scrabble in Minnesota.</p>
           <div class="hero-actions">
             <a class="button primary" href="#leaderboard-nm">View North Metro standings</a>
+            <a class="button primary" href="#leaderboard-day">View Monday Park Tavern standings</a>
             <a class="button" href="#clubs">Find a club session</a>
             <a class="button" href="#events">Upcoming events</a>
           </div>
+        </div>
+        <div class="mn-silhouette" aria-hidden="true">
+          <svg viewBox="0 0 220 300">
+            <path fill="currentColor" d="M60 8 L153 8 L153 35 L166 35 L166 64 L181 70 L181 100 L198 108 L185 130 L195 151 L181 166 L190 193 L172 210 L160 249 L139 270 L104 274 L80 292 L63 272 L37 268 L48 235 L42 199 L29 175 L40 147 L31 116 L45 84 L42 56 L57 39 Z" />
+            <path fill="#ffffff" opacity="0.95" d="M49 14 L59 23 L51 34 L42 27 Z" />
+            <path fill="#ffffff" opacity="0.9" d="M148 13 L163 14 L163 31 L151 31 Z" />
+          </svg>
         </div>
       </section>
 
