@@ -62,6 +62,38 @@
     footer{background:var(--green);color:white;margin-top:20px}.footer-inner{max-width:1180px;margin:0 auto;padding:22px 28px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:start}
     @media(max-width:900px){.nav{min-height:auto;padding:16px 18px 10px;align-items:flex-start;flex-direction:column;gap:8px}.nav-links{width:100%;overflow-x:auto;gap:18px;font-size:.9rem;padding-bottom:3px}.nav-links a{padding:6px 0 9px;white-space:nowrap}.hero{min-height:460px}.hero-inner{padding:36px 18px}.script{text-align:center;font-size:3rem}.mn-bg{inset:46px 0 auto 0;height:330px}.mn-bg img{max-width:86vw}.board-corner,.rack{display:none}main{padding:0 18px;margin-top:-22px}.quick-actions{grid-template-columns:1fr 1fr}.action{border-right:0;border-bottom:1px solid var(--line);min-height:142px;padding:20px 12px}.cards-2,.events,.info-grid{grid-template-columns:1fr}.club-card{grid-template-columns:1fr}.footer-inner{grid-template-columns:1fr}}
     @media(max-width:520px){.brand{font-size:1.45rem}.hero{min-height:430px}.tile-title{gap:6px}.scrabble-tile{width:42px;border-radius:5px}.scrabble-tile sub{right:5px;bottom:3px}.quick-actions{grid-template-columns:1fr}.action{min-height:auto;grid-template-columns:56px 1fr;justify-items:start;text-align:left;align-items:center}.circle{width:52px;height:52px;font-size:1.45rem}.event-card{grid-template-columns:76px 1fr;gap:14px}.date-badge{min-height:100px}.card{padding:18px}}
+  
+      .tile-title {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* Row behavior */
+    .tile-row {
+      display: flex;
+      flex-wrap: nowrap;   /* prevents ugly mid-word wrapping */
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    /* Space between Twin and Cities */
+    .tile-gap {
+      width: clamp(14px, 2vw, 24px);
+    }
+    
+    /* MOBILE adjustments */
+    @media (max-width: 520px) {
+      .tile-row {
+        gap: 4px;
+      }
+    
+      .scrabble-tile {
+        width: 36px;   /* slightly smaller tiles */
+        font-size: 1.4rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -70,30 +102,34 @@
   <div class="mn-bg" aria-hidden="true"><img src="minnesota-silhouette-map.png" alt="" /></div>
   <div class="board-corner" aria-hidden="true"></div><div class="rack" aria-hidden="true"><span class="mini-tile">W</span><span class="mini-tile">O</span><span class="mini-tile">R</span><span class="mini-tile">D</span><span class="mini-tile">S</span></div>
   <div class="hero-inner"><h1>Twin Cities Scrabble</h1><div class="script">Welcome to</div>
-    <div class="tile-title" aria-label="Twin Cities Scrabble">
-      <span class="scrabble-tile">T<sub>1</sub></span>
-      <span class="scrabble-tile">W<sub>4</sub></span>
-      <span class="scrabble-tile">I<sub>1</sub></span>
-      <span class="scrabble-tile">N<sub>1</sub></span>
+<div class="tile-title">
+  <div class="tile-row">
+    <span class="scrabble-tile">T<sub>1</sub></span>
+    <span class="scrabble-tile">W<sub>4</sub></span>
+    <span class="scrabble-tile">I<sub>1</sub></span>
+    <span class="scrabble-tile">N<sub>1</sub></span>
 
-      <!-- spacer -->
-      <span style="width:clamp(16px,2vw,28px);"></span>
-      
-      <span class="scrabble-tile">C<sub>3</sub></span>
-      <span class="scrabble-tile">I<sub>1</sub></span>
-      <span class="scrabble-tile">T<sub>1</sub></span>
-      <span class="scrabble-tile">I<sub>1</sub></span>
-      <span class="scrabble-tile">E<sub>1</sub></span>
-      <span class="scrabble-tile">S<sub>1</sub></span>
-      <span class="word-break"></span><span class="scrabble-tile">S<sub>1</sub></span>
-      <span class="scrabble-tile">C<sub>3</sub></span>
-      <span class="scrabble-tile">R<sub>1</sub></span>
-      <span class="scrabble-tile">A<sub>1</sub></span>
-      <span class="scrabble-tile">B<sub>3</sub></span>
-      <span class="scrabble-tile">B<sub>3</sub></span>
-      <span class="scrabble-tile">L<sub>1</sub></span>
-      <span class="scrabble-tile">E<sub>1</sub></span>
-    </div><p class="tagline">Play fair, be nice, have fun</p>
+    <span class="tile-gap"></span>
+
+    <span class="scrabble-tile">C<sub>3</sub></span>
+    <span class="scrabble-tile">I<sub>1</sub></span>
+    <span class="scrabble-tile">T<sub>1</sub></span>
+    <span class="scrabble-tile">I<sub>1</sub></span>
+    <span class="scrabble-tile">E<sub>1</sub></span>
+    <span class="scrabble-tile">S<sub>1</sub></span>
+  </div>
+
+  <div class="tile-row">
+    <span class="scrabble-tile">S<sub>1</sub></span>
+    <span class="scrabble-tile">C<sub>3</sub></span>
+    <span class="scrabble-tile">R<sub>1</sub></span>
+    <span class="scrabble-tile">A<sub>1</sub></span>
+    <span class="scrabble-tile">B<sub>3</sub></span>
+    <span class="scrabble-tile">B<sub>3</sub></span>
+    <span class="scrabble-tile">L<sub>1</sub></span>
+    <span class="scrabble-tile">E<sub>1</sub></span>
+  </div>
+<p class="tagline">Play fair, be nice, have fun</p>
     <p class="subtitle">A thriving Scrabble community in Minnesota</p></div>
 </section>
 <main>
