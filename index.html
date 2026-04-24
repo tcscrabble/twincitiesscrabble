@@ -96,13 +96,13 @@
         right: clamp(-56px, -7vw, -18px);
         top: clamp(14px, 3vw, 34px);
         width: min(43vw, 360px);
-        opacity: 0.12;
-        color: var(--green);
+        opacity: 0.16;
         transform: rotate(-2deg);
         pointer-events: none;
+        filter: sepia(22%) saturate(90%) hue-rotate(82deg);
       }
 
-      .mn-silhouette svg { display: block; width: 100%; height: auto; }
+      .mn-silhouette img { display: block; width: 100%; height: auto; }
 
       .hero-content { position: relative; z-index: 1; max-width: 720px; }
 
@@ -267,11 +267,7 @@
           </div>
         </div>
         <div class="mn-silhouette" aria-hidden="true">
-          <svg viewBox="0 0 220 300">
-            <path fill="currentColor" d="M60 8 L153 8 L153 35 L166 35 L166 64 L181 70 L181 100 L198 108 L185 130 L195 151 L181 166 L190 193 L172 210 L160 249 L139 270 L104 274 L80 292 L63 272 L37 268 L48 235 L42 199 L29 175 L40 147 L31 116 L45 84 L42 56 L57 39 Z" />
-            <path fill="#ffffff" opacity="0.95" d="M49 14 L59 23 L51 34 L42 27 Z" />
-            <path fill="#ffffff" opacity="0.9" d="M148 13 L163 14 L163 31 L151 31 Z" />
-          </svg>
+          <img src="minnesota-silhouette-map.png" alt="" />
         </div>
       </section>
 
