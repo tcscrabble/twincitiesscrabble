@@ -1,94 +1,634 @@
-export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
-  const url = new URL(request.url);
-  const rawYear = url.searchParams.get("year");
-  const year = rawYear ? Number(rawYear) : new Date().getFullYear();
-  const rawClub = url.searchParams.get("club");
-  const club = rawClub && rawClub !== "ALL" ? rawClub.toUpperCase() : null;
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Twin Cities Scrabble</title>
+    <style>
+      :root {
+        --ink: #201a12;
+        --muted: #665f55;
+        --line: #e5dfd2;
+        --paper: #fffaf0;
+        --card: #ffffff;
+        --tile: #f5d58d;
+        --tile-edge: #c99a3b;
+        --green: #155d43;
+        --green-soft: #e8f3ed;
+        --blue-soft: #eaf3fb;
+        --shadow: 0 12px 30px rgba(60, 44, 20, 0.12);
+      }
 
-  if (!Number.isInteger(year) || year < 1900 || year > 3000) {
-    return new Response(JSON.stringify({ error: "Invalid year" }), {
-      status: 400,
-      headers: { "content-type": "application/json" },
+      * { box-sizing: border-box; }
+
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 0;
+        line-height: 1.5;
+        color: var(--ink);
+        background: linear-gradient(180deg, #fff7e5 0%, #ffffff 360px);
+      }
+
+      a { color: #075985; }
+      a:hover { text-decoration-thickness: 2px; }
+
+      header {
+        border-bottom: 1px solid rgba(32, 26, 18, 0.12);
+        background: rgba(255, 250, 240, 0.94);
+        backdrop-filter: blur(8px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .wrap { max-width: 1060px; margin: 0 auto; padding: 0 18px; }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 0;
+        gap: 16px;
+      }
+
+      .brand {
+        font-weight: 800;
+        text-decoration: none;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 6px 14px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      nav a { text-decoration: none; color: #3a332b; font-size: 15px; }
+      nav a:hover { text-decoration: underline; }
+
+      main { padding: 26px 0 60px; }
+
+      h1 { margin: 0; font-size: clamp(34px, 6vw, 68px); line-height: 1.02; letter-spacing: -0.045em; }
+      h2 { margin-top: 42px; font-size: clamp(24px, 4vw, 32px); border-top: 1px solid var(--line); padding-top: 24px; }
+      h3 { margin: 0 0 6px; font-size: 19px; }
+
+      .muted { color: var(--muted); }
+      .small { font-size: 14px; }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(201, 154, 59, 0.35);
+        border-radius: 28px;
+        padding: clamp(22px, 5vw, 46px);
+        background:
+          radial-gradient(circle at 80% 10%, rgba(21, 93, 67, 0.14), transparent 32%),
+          linear-gradient(135deg, #fff9ec, #fff 58%, #edf7f1);
+        box-shadow: var(--shadow);
+      }
+
+      .mn-silhouette {
+        position: absolute;
+        right: clamp(-56px, -7vw, -18px);
+        top: clamp(14px, 3vw, 34px);
+        width: min(43vw, 360px);
+        opacity: 0.16;
+        transform: rotate(-2deg);
+        pointer-events: none;
+        filter: sepia(22%) saturate(90%) hue-rotate(82deg);
+      }
+
+      .mn-silhouette img { display: block; width: 100%; height: auto; }
+
+      .hero-content { position: relative; z-index: 1; max-width: 720px; }
+
+      .tile-title {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      .tile-word { display: flex; gap: 5px; flex-wrap: wrap; }
+
+      .tile {
+        width: clamp(26px, 5vw, 48px);
+        height: clamp(26px, 5vw, 48px);
+        display: inline-grid;
+        place-items: center;
+        position: relative;
+        border-radius: 7px;
+        background: linear-gradient(145deg, #ffe7aa, var(--tile));
+        border: 1px solid var(--tile-edge);
+        box-shadow: 0 3px 0 #9f7220, 0 8px 16px rgba(92, 61, 12, 0.16);
+        font-weight: 900;
+        font-size: clamp(16px, 3.8vw, 31px);
+        line-height: 1;
+      }
+
+      .tile .score {
+        position: absolute;
+        right: 4px;
+        bottom: 2px;
+        font-size: clamp(7px, 1.2vw, 10px);
+        font-weight: 800;
+      }
+
+      .hero-subtitle {
+        margin: 12px 0 0;
+        max-width: 620px;
+        font-size: clamp(16px, 2.4vw, 20px);
+        color: #473f35;
+      }
+
+      .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 10px 15px;
+        text-decoration: none;
+        font-weight: 700;
+        border: 1px solid rgba(21, 93, 67, 0.2);
+        background: #fff;
+        color: var(--green);
+      }
+
+      .button.primary { background: var(--green); color: #fff; }
+
+      .grid { display: grid; gap: 16px; }
+      .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        background: var(--card);
+        box-shadow: 0 6px 18px rgba(42, 31, 14, 0.06);
+      }
+
+      .club-card { background: linear-gradient(180deg, #ffffff, #fffaf0); }
+      .event-card { background: linear-gradient(180deg, #ffffff, var(--blue-soft)); }
+
+      .pill {
+        display: inline-block;
+        padding: 3px 9px;
+        border: 1px solid rgba(21, 93, 67, 0.18);
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--green);
+        background: var(--green-soft);
+        font-weight: 700;
+      }
+
+      ul { margin: 8px 0 0 20px; padding: 0; }
+
+      .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        margin-top: 12px;
+        background: #fff;
+      }
+
+      table { border-collapse: collapse; width: 100%; min-width: 680px; }
+      th, td { border-bottom: 1px solid #e9e2d5; padding: 9px 11px; text-align: left; white-space: nowrap; }
+      th { background: #f8f0df; font-size: 14px; }
+      tr:last-child td { border-bottom: 0; }
+
+      .section-note { margin-top: 6px; }
+      .toolbar { margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      select { padding: 7px 9px; border-radius: 10px; border: 1px solid #cfc5b5; background: #fff; }
+
+      .footer { margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+      .error { color: #b00020; font-weight: 700; }
+
+      @media (max-width: 720px) {
+        .wrap { padding: 0 12px; }
+        .nav { align-items: flex-start; flex-direction: column; gap: 8px; }
+        nav { justify-content: flex-start; }
+        nav a { font-size: 14px; }
+        main { padding-top: 16px; }
+        .hero { border-radius: 20px; padding: 20px 14px; }
+        .mn-silhouette { width: 210px; right: -82px; top: 72px; opacity: 0.08; }
+        .grid.two, .grid.three { grid-template-columns: 1fr; }
+        .card { padding: 15px; border-radius: 16px; }
+        h2 { margin-top: 32px; }
+        .button { width: 100%; }
+        .tile-word { gap: 4px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="nav">
+          <a class="brand" href="#home">Twin Cities Scrabble</a>
+          <nav>
+            <a href="#clubs">Clubs</a>
+            <a href="#leaderboard-nm">North Metro</a>
+            <a href="#leaderboard-day">Daytime</a>
+            <a href="#events">Events</a>
+            <a href="#how-it-works">How It Works</a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section id="home" class="hero">
+        <div class="hero-content">
+          <div class="tile-title" aria-label="Twin Cities Scrabble">
+            <div class="tile-word" aria-hidden="true">
+              <span class="tile">T<span class="score">1</span></span><span class="tile">W<span class="score">4</span></span><span class="tile">I<span class="score">1</span></span><span class="tile">N<span class="score">1</span></span>
+            </div>
+            <div class="tile-word" aria-hidden="true">
+              <span class="tile">C<span class="score">3</span></span><span class="tile">I<span class="score">1</span></span><span class="tile">T<span class="score">1</span></span><span class="tile">I<span class="score">1</span></span><span class="tile">E<span class="score">1</span></span><span class="tile">S<span class="score">1</span></span>
+            </div>
+            <div class="tile-word" aria-hidden="true">
+              <span class="tile">S<span class="score">1</span></span><span class="tile">C<span class="score">3</span></span><span class="tile">R<span class="score">1</span></span><span class="tile">A<span class="score">1</span></span><span class="tile">B<span class="score">3</span></span><span class="tile">B<span class="score">3</span></span><span class="tile">L<span class="score">1</span></span><span class="tile">E<span class="score">1</span></span>
+            </div>
+          </div>
+          <h1>Local clubs, live results, and word-game community.</h1>
+          <p class="hero-subtitle">Follow Twin Cities club standings, explore player results, and find places to play tournament-style Scrabble in Minnesota.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#leaderboard-nm">View North Metro standings</a>
+            <a class="button primary" href="#leaderboard-day">View Monday Park Tavern standings</a>
+            <a class="button" href="#clubs">Find a club session</a>
+            <a class="button" href="#events">Upcoming events</a>
+          </div>
+        </div>
+        <div class="mn-silhouette" aria-hidden="true">
+          <img src="minnesota-silhouette-map.png" alt="" />
+        </div>
+      </section>
+
+      <section id="clubs">
+        <h2>Club Details</h2>
+        <div class="grid two">
+          <article class="card club-card">
+            <span class="pill">North Metro</span>
+            <h3>Davanni’s — Roseville</h3>
+            <div><strong>Time:</strong> Thursdays, 2 PM – 8 PM</div>
+            <div><strong>Format:</strong> Casual club play with recorded results.</div>
+            <div class="muted small section-note">New and returning players are welcome. Bring a board if you have one.</div>
+          </article>
+          <article class="card club-card">
+            <span class="pill">Daytime Scrabble</span>
+            <h3>Park Tavern — St. Louis Park</h3>
+            <div><strong>Time:</strong> Mondays, 11 AM – 3 PM</div>
+            <div><strong>Format:</strong> Daytime club games with flexible rounds.</div>
+            <div class="muted small section-note">A good option for players who prefer daytime games.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="leaderboard-view">
+        <h2 id="leaderboardTitle">Leaderboard</h2>
+        <div class="toolbar">
+          <label for="leaderboardYear">Season:</label>
+          <select id="leaderboardYear"></select>
+        </div>
+        <div class="muted section-note">Auto-generated from recorded games for the selected season. Sorted by win percentage by default.</div>
+        <div id="lbStatus" class="muted" style="margin-top: 10px;">Loading…</div>
+        <div class="table-wrap">
+          <table aria-label="Leaderboard">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Games</th>
+                <th>Wins</th>
+                <th>Losses</th>
+                <th>Ties</th>
+                <th>Win %</th>
+                <th>Spread</th>
+                <th>Total Points</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="player-view" style="display:none;">
+        <h2>Player</h2>
+        <div id="player-meta" class="muted"></div>
+        <div class="table-wrap">
+          <table aria-label="Player Games">
+            <thead>
+              <tr>
+                <th>Club</th>
+                <th>Opponent</th>
+                <th>Your Score</th>
+                <th>Opponent Score</th>
+                <th>Result</th>
+                <th>Spread</th>
+                <th>Session Date</th>
+              </tr>
+            </thead>
+            <tbody id="player-games-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="events">
+        <h2>Upcoming Local & Regional Events</h2>
+        <div class="grid three">
+          <article class="card event-card">
+            <span class="pill">Local</span>
+            <h3>Eden Prairie, MN</h3>
+            <div><strong>Date:</strong> May 2–3, 2026</div>
+            <div class="muted small section-note">Listed on the NASPA tournament calendar. Add local flyer/contact details here when available.</div>
+          </article>
+          <article class="card event-card">
+            <span class="pill">Regional</span>
+            <h3>Scrabble Players Championship — Cedar Rapids, IA</h3>
+            <div><strong>Date:</strong> July 18–22, 2026</div>
+            <div class="muted small section-note">A major regional/national event close enough for Twin Cities players to consider.</div>
+          </article>
+          <article class="card event-card">
+            <span class="pill">Collins</span>
+            <h3>North American Collins Championship — Minneapolis, MN</h3>
+            <div><strong>Date:</strong> November 6–9, 2026</div>
+            <div class="muted small section-note">Premier Collins-only championship event, hosted in Minneapolis.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="how-it-works">
+        <h2>How It Works</h2>
+        <div class="card">
+          <ul>
+            <li><strong>Games are 1:1.</strong> Each game is a head-to-head match.</li>
+            <li><strong>We play in rounds.</strong> A round is a wave where games start together.</li>
+            <li><strong>Pairings are dynamic.</strong> Pairings for later rounds can be based on earlier results.</li>
+            <li><strong>No fixed number of rounds.</strong> Rounds continue as long as people are still playing.</li>
+            <li><strong>Odd number of players:</strong> someone may play two separate games against two opponents during a round/session.</li>
+          </ul>
+        </div>
+      </section>
+
+      <div class="footer">
+        © <span id="year"></span> Twin Cities Scrabble • Built on Cloudflare Pages
+      </div>
+    </main>
+
+<script>
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function renderLeaderboard(club, selectedYear = new Date().getFullYear()) {
+  const status = document.getElementById("lbStatus");
+  const table = document.getElementById("leaderboardBody");
+  const leaderboardYear = document.getElementById("leaderboardYear");
+  const title = document.getElementById("leaderboardTitle");
+
+  if (title) {
+    title.textContent =
+      club === "NM" ? "North Metro Leaderboard" :
+      club === "DAY" ? "Daytime Leaderboard" :
+      "Leaderboard";
+  }
+
+  if (leaderboardYear && !leaderboardYear.options.length) {
+    const currentYear = Math.max(new Date().getFullYear(), 2026);
+    for (let y = currentYear; y >= 2026; y--) {
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      leaderboardYear.appendChild(opt);
+    }
+
+    leaderboardYear.addEventListener("change", () => {
+      renderLeaderboard(club, Number(leaderboardYear.value));
     });
   }
 
-  const clubFilter = club ? `AND c.club_key = ?` : "";
+  if (leaderboardYear) leaderboardYear.value = String(selectedYear);
 
-  const sql = `
-    WITH player_games AS (
-      SELECT
-        g.game_id,
-        g.session_date,
-        c.club_key,
-        g.player_id AS player_id,
-        g.player_score AS points_for,
-        g.opponent_score AS points_against
-      FROM games g
-      JOIN clubs c ON c.club_id = g.club_id
-      WHERE substr(g.session_date, 1, 4) = ?
-        ${clubFilter}
-
-      UNION ALL
-
-      SELECT
-        g.game_id,
-        g.session_date,
-        c.club_key,
-        g.opponent_id AS player_id,
-        g.opponent_score AS points_for,
-        g.player_score AS points_against
-      FROM games g
-      JOIN clubs c ON c.club_id = g.club_id
-      WHERE substr(g.session_date, 1, 4) = ?
-        ${clubFilter}
-    )
-    SELECT
-      p.player_id AS id,
-      p.display_name AS name,
-      COUNT(pg.game_id) AS games,
-      COALESCE(SUM(CASE WHEN pg.points_for > pg.points_against THEN 1 ELSE 0 END), 0) AS wins,
-      COALESCE(SUM(CASE WHEN pg.points_for < pg.points_against THEN 1 ELSE 0 END), 0) AS losses,
-      COALESCE(SUM(CASE WHEN pg.points_for = pg.points_against THEN 1 ELSE 0 END), 0) AS ties,
-      COALESCE(SUM(pg.points_for), 0) AS total_points,
-      COALESCE(SUM(pg.points_for - pg.points_against), 0) AS spread
-    FROM players p
-    JOIN player_games pg ON pg.player_id = p.player_id
-    GROUP BY p.player_id, p.display_name
-    HAVING games > 0
-    ORDER BY
-      CAST(wins AS REAL) / NULLIF(games, 0) DESC,
-      games DESC,
-      spread DESC,
-      total_points DESC,
-      name ASC;
-  `;
+  status.textContent = "Loading...";
+  table.innerHTML = "";
 
   try {
-    const stmt = club
-      ? env.DB.prepare(sql).bind(String(year), club, String(year), club)
-      : env.DB.prepare(sql).bind(String(year), String(year));
+    const resp = await fetch(`/api/leaderboard?year=${selectedYear}&club=${club}`);
+    if (!resp.ok) {
+      status.textContent = `Error loading leaderboard (${resp.status}).`;
+      return;
+    }
 
-    const { results } = await stmt.all();
+    const data = await resp.json();
+    const rows = Array.isArray(data.results) ? data.results : [];
 
-    const rows = (results as any[]).map((r) => {
-      const games = Number(r.games) || 0;
-      const wins = Number(r.wins) || 0;
-      const win_pct = games ? Math.round((wins / games) * 1000) / 10 : 0;
-      return { ...r, win_pct };
-    });
+    status.textContent = "";
 
-    return new Response(
-      JSON.stringify({ year, club: club ?? "all", results: rows }),
-      { headers: { "content-type": "application/json" } }
-    );
-  } catch (err: any) {
-    return new Response(
-      JSON.stringify({ error: "Failed to load leaderboard", message: err.message }),
-      { status: 500, headers: { "content-type": "application/json" } }
-    );
+    if (!rows.length) {
+      status.textContent = "No leaderboard data found.";
+      return;
+    }
+
+    for (const row of rows) {
+      const tr = document.createElement("tr");
+      const playerUrl = `#player?id=${row.id}&year=${selectedYear}&club=${club}`;
+
+      tr.innerHTML = `
+        <td><a href="${playerUrl}">${escapeHtml(row.name)}</a></td>
+        <td>${row.games ?? ""}</td>
+        <td>${row.wins ?? ""}</td>
+        <td>${row.losses ?? ""}</td>
+        <td>${row.ties ?? 0}</td>
+        <td>${row.win_pct ?? ""}</td>
+        <td>${row.spread ?? ""}</td>
+        <td>${row.total_points ?? ""}</td>
+      `;
+
+      table.appendChild(tr);
+    }
+  } catch (e) {
+    console.error("Leaderboard render failed:", e);
+    status.textContent = "Error loading leaderboard (see console).";
   }
-};
-
-interface Env {
-  DB: D1Database;
 }
+
+async function renderPlayer(playerId) {
+  const meta = document.getElementById("player-meta");
+  const tbody = document.getElementById("player-games-body");
+
+  const hash = location.hash || "";
+  const params = new URLSearchParams(hash.split("?")[1] || "");
+  const rawYear = params.get("year");
+  const year = rawYear ? Number(rawYear) : new Date().getFullYear();
+  const club = params.get("club") || "ALL";
+  const clubFilter = club === "NM" || club === "DAY" ? club : "ALL";
+
+  meta.textContent = "Loading...";
+  tbody.innerHTML = "";
+
+  try {
+    const resp = await fetch(`/api/player?id=${playerId}&year=${year}&club=${clubFilter}`);
+    if (!resp.ok) {
+      meta.textContent = `Error loading player (${resp.status}).`;
+      return;
+    }
+
+    const data = await resp.json();
+    const playerName = data.player?.name ?? "";
+    const games = Array.isArray(data.games) ? data.games : [];
+
+    function addDerivedFields(rows) {
+      return rows.map(g => {
+        const myScore = Number(g.my_score) || 0;
+        const oppScore = Number(g.opp_score) || 0;
+        const spread = myScore - oppScore;
+        const result = spread > 0 ? "W" : spread < 0 ? "L" : "T";
+        return { ...g, spread, result };
+      });
+    }
+
+    function summarizeGames(rows) {
+      const gamesCount = rows.length;
+      const wins = rows.filter(g => g.result === "W").length;
+      const losses = rows.filter(g => g.result === "L").length;
+      const ties = rows.filter(g => g.result === "T").length;
+      const totalSpread = rows.reduce((sum, g) => sum + (Number(g.spread) || 0), 0);
+      const pointsFor = rows.reduce((sum, g) => sum + (Number(g.my_score) || 0), 0);
+      const pointsAgainst = rows.reduce((sum, g) => sum + (Number(g.opp_score) || 0), 0);
+      const winPct = gamesCount ? Math.round((wins / gamesCount) * 1000) / 10 : 0;
+      const avgSpread = gamesCount ? Math.round((totalSpread / gamesCount) * 100) / 100 : 0;
+
+      return { games: gamesCount, wins, losses, ties, win_pct: winPct, total_spread: totalSpread, avg_spread: avgSpread, points_for: pointsFor, points_against: pointsAgainst };
+    }
+
+    function renderPlayerGames(rows) {
+      tbody.innerHTML = "";
+      const derivedGames = addDerivedFields(rows);
+      const stats = summarizeGames(derivedGames);
+      const statsLine = document.getElementById("player-stats-line");
+
+      if (statsLine) {
+        statsLine.textContent =
+          `${stats.games} games | ${stats.wins} wins | ${stats.losses} losses | ${stats.ties} ties | ` +
+          `${stats.win_pct}% win | spread ${stats.total_spread} | avg spread ${stats.avg_spread} | ` +
+          `PF ${stats.points_for} | PA ${stats.points_against}`;
+      }
+
+      for (const g of derivedGames) {
+        const clubCode = g.club_key ?? "";
+        const clubLabel = clubCode === "NM" ? "North Metro" : clubCode === "DAY" ? "Daytime" : clubCode;
+        const opponentName = escapeHtml(g.opponent_name ?? "");
+        const opponentId = g.opponent_id ?? "";
+        const selectedClubForLink = clubFilter;
+        const opponentCell = opponentId
+          ? `<a href="#player?id=${opponentId}&year=${year}&club=${selectedClubForLink}">${opponentName}</a>`
+          : opponentName;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(clubLabel)}</td>
+          <td>${opponentCell}</td>
+          <td>${g.my_score ?? ""}</td>
+          <td>${g.opp_score ?? ""}</td>
+          <td>${g.result}</td>
+          <td>${g.spread}</td>
+          <td>${g.session_date ?? ""}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    meta.innerHTML = `
+      <div class="toolbar">
+        <strong>${escapeHtml(playerName)}</strong>
+        <label>Season:
+          <select id="yearSelect">
+            <option value="2026" ${year === 2026 ? "selected" : ""}>2026</option>
+          </select>
+        </label>
+        <label>Club:
+          <select id="clubFilter">
+            <option value="ALL" ${clubFilter === "ALL" ? "selected" : ""}>All</option>
+            <option value="NM" ${clubFilter === "NM" ? "selected" : ""}>North Metro</option>
+            <option value="DAY" ${clubFilter === "DAY" ? "selected" : ""}>Daytime</option>
+          </select>
+        </label>
+        <a href="#leaderboard-${clubFilter === "DAY" ? "day" : "nm"}">Back to leaderboard</a>
+      </div>
+      <div id="player-stats-line" class="muted section-note"></div>
+    `;
+
+    renderPlayerGames(games);
+
+    const yearSelect = document.getElementById("yearSelect");
+    if (yearSelect) {
+      yearSelect.addEventListener("change", () => {
+        const selectedClub = document.getElementById("clubFilter")?.value || clubFilter;
+        location.hash = `#player?id=${playerId}&year=${yearSelect.value}&club=${selectedClub}`;
+      });
+    }
+
+    const clubFilterSelect = document.getElementById("clubFilter");
+    if (clubFilterSelect) {
+      clubFilterSelect.addEventListener("change", () => {
+        const selectedClub = clubFilterSelect.value;
+        location.hash = `#player?id=${playerId}&year=${year}&club=${selectedClub}`;
+      });
+    }
+  } catch (e) {
+    console.error("Player render failed:", e);
+    meta.textContent = "Error loading player (see console).";
+  }
+}
+
+function showView(view) {
+  document.getElementById("leaderboard-view").style.display = view === "leaderboard" ? "" : "none";
+  document.getElementById("player-view").style.display = view === "player" ? "" : "none";
+}
+
+async function renderRoute() {
+  const hash = location.hash || "";
+
+  if (hash.startsWith("#player")) {
+    const params = new URLSearchParams(hash.split("?")[1] || "");
+    const rawId = params.get("id");
+    const id = Number(rawId);
+
+    if (!rawId || !Number.isInteger(id) || id <= 0) {
+      showView("player");
+      document.getElementById("player-meta").textContent = "Invalid player id.";
+      document.getElementById("player-games-body").innerHTML = "";
+      return;
+    }
+
+    showView("player");
+    await renderPlayer(id);
+    return;
+  }
+
+  showView("leaderboard");
+
+  if (hash.startsWith("#leaderboard-day")) {
+    await renderLeaderboard("DAY", 2026);
+  } else {
+    await renderLeaderboard("NM", 2026);
+  }
+}
+
+document.getElementById("year").textContent = new Date().getFullYear();
+window.addEventListener("hashchange", renderRoute);
+renderRoute();
+</script>
+  </body>
+</html>
