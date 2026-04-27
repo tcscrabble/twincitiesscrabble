@@ -264,8 +264,52 @@ async function loadPlayer(playerId, year, club) {
     return;
   }
 
-  alert(`${data.player.name}: ${data.stats.games} games, ${data.stats.wins} wins, ${data.stats.losses} losses, ${data.stats.ties} ties`);
-}
+  document.getElementById("player-panel")?.remove();
+  
+  const s = data.stats || {};
+  const games = data.games || [];
+  
+document.getElementById("standings").insertAdjacentHTML("afterend", `
+  <section id="player-panel" class="card">
+    <h2>${escapeHtml(data.player.name)}</h2>
+    <p>
+      ${number(s.games)} games ·
+      ${number(s.wins)} wins ·
+      ${number(s.losses)} losses ·
+      ${number(s.ties)} ties ·
+      ${number(s.total_spread)} spread
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Club</th>
+            <th>Opponent</th>
+            <th>Score</th>
+            <th>Spread</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${games.map(g => {
+            const spread = Number(g.my_score) - Number(g.opp_score);
+            return `
+              <tr>
+                <td>${escapeHtml(g.session_date)}</td>
+                <td>${escapeHtml(g.club_key)}</td>
+                <td>${escapeHtml(g.opponent_name)}</td>
+                <td>${number(g.my_score)}–${number(g.opp_score)}</td>
+                <td>${number(spread)}</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  </section>
+`);
+
+document.getElementById("player-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });}
 function number(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString():"0";}
 function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
 </script>
