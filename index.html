@@ -268,50 +268,71 @@ async function loadPlayer(playerId, year, club) {
   
   const s = data.stats || {};
   const games = data.games || [];
-  
-document.getElementById("standings").insertAdjacentHTML("afterend", `
+
+  const playerHtml = `
   <section id="player-panel" class="card">
     <h2>${escapeHtml(data.player.name)}</h2>
-    <p>
-      ${number(s.games)} games ·
-      ${number(s.wins)} wins ·
-      ${number(s.losses)} losses ·
-      ${number(s.ties)} ties ·
-      ${number(s.total_spread)} spread
-    </p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Club</th>
-            <th>Opponent</th>
-            <th>Score</th>
-            <th>Spread</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${games.map(g => {
-            const spread = Number(g.my_score) - Number(g.opp_score);
-            return `
-              <tr>
-                <td>${escapeHtml(g.session_date)}</td>
-                <td>${escapeHtml(g.club_key)}</td>
-                <td>${escapeHtml(g.opponent_name)}</td>
-                <td>${number(g.my_score)}–${number(g.opp_score)}</td>
-                <td>${number(spread)}</td>
-              </tr>
-            `;
-          }).join("")}
-        </tbody>
-      </table>
-    </div>
-  </section>
-`);
 
-document.getElementById("player-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });}
-function number(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString():"0";}
-function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
-</script>
-</body>
-</html>
+    <!-- dropdown here -->
+    <div class="filters" style="margin-bottom: 12px;">
+      <label for="playerClubSelect">Club</label>
+      <select id="playerClubSelect">
+        <option value="NM" ${club === "NM" ? "selected" : ""}>North Metro</option>
+        <option value="DAY" ${club === "DAY" ? "selected" : ""}>Monday Park Tavern</option>
+        <option value="ALL" ${club === "ALL" ? "selected" : ""}>All clubs</option>
+      </select>
+    </div>
+  <p>
+    ${number(s.games)} games ·
+    ${number(s.wins)} wins ·
+    ${number(s.losses)} losses ·
+    ${number(s.ties)} ties ·
+    ${number(s.total_spread)} spread
+  </p>
+  
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Club</th>
+          <th>Round</th>
+          <th>Opponent</th>
+          <th>Score</th>
+          <th>Spread</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${games.map(g => {
+          const spread = Number(g.my_score) - Number(g.opp_score);
+          return `
+            <tr>
+              <td>${escapeHtml(g.session_date)}</td>
+              <td>${escapeHtml(g.club_key)}</td>
+              <td>${escapeHtml(g.round_number ?? "")}</td>
+              <td>${escapeHtml(g.opponent_name)}</td>
+              <td>${number(g.my_score)}–${number(g.opp_score)}</td>
+              <td>${number(spread)}</td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  </div>
+    </section>
+  `;
+
+  document.getElementById("standings").insertAdjacentHTML("afterend", playerHtml);
+  
+  document.getElementById("playerClubSelect")?.addEventListener("change", event => {
+    const newClub = event.target.value;
+    window.location.hash = `player?id=${playerId}&year=${year}&club=${newClub}`;
+    loadPlayer(playerId, year, newClub);
+  });
+    
+  document.getElementById("player-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });}
+  function number(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString():"0";}
+  function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+  </script>
+  </body>
+  </html>
