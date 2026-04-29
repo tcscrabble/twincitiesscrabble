@@ -53,6 +53,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       COALESCE(SUM(pg.points_for - pg.points_against), 0) AS spread
     FROM players p
     JOIN player_games pg ON pg.player_id = p.player_id
+    WHERE p.is_placeholder_visitor = 0
     GROUP BY p.player_id, p.display_name
     HAVING games > 0
     ORDER BY
