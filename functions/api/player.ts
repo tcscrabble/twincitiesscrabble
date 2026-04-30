@@ -124,38 +124,39 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
 
       gamesResult = await env.DB.prepare(
         `
-        SELECT
-          g.game_id,
-          g.session_date,
-          c.club_key,
-          c.name AS club_name,
-          g.round_number,
-          p.is_placeholder_visitor
+      SELECT
+        g.game_id,
+        g.session_date,
+        c.club_key,
+        c.name AS club_name,
+        g.round_number,
       
-          CASE
-            WHEN g.player_id = ? THEN opp.player_id
-            ELSE p.player_id
-          END AS opponent_id,
+        CASE
+          WHEN g.player_id = ? THEN opp.player_id
+          ELSE p.player_id
+        END AS opponent_id,
       
-          CASE
-            WHEN g.player_id = ? THEN opp.display_name
-            ELSE p.display_name
-          END AS opponent_name,
+        CASE
+          WHEN g.player_id = ? THEN opp.display_name
+          ELSE p.display_name
+        END AS opponent_name,
       
-          CASE
-            WHEN g.player_id = ? THEN g.player_score
-            ELSE g.opponent_score
-          END AS my_score,
+        CASE
+          WHEN g.player_id = ? THEN g.player_score
+          ELSE g.opponent_score
+        END AS my_score,
       
-          CASE
-            WHEN g.player_id = ? THEN g.opponent_score
-            ELSE g.player_score
-          END AS opp_score
-
-          CASE
-            WHEN g.player_id = ? THEN opp.is_placeholder_visitor
-            ELSE p.is_placeholder_visitor
-          END AS opponent_is_placeholder_visitor, g.visitor_note
+        CASE
+          WHEN g.player_id = ? THEN g.opponent_score
+          ELSE g.player_score
+        END AS opp_score,
+      
+        CASE
+          WHEN g.player_id = ? THEN opp.is_placeholder_visitor
+          ELSE p.is_placeholder_visitor
+        END AS opponent_is_placeholder_visitor,
+      
+        g.visitor_note
       
         FROM games g
         JOIN clubs c
