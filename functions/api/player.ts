@@ -130,6 +130,7 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
           c.club_key,
           c.name AS club_name,
           g.round_number,
+          p.is_placeholder_visitor
       
           CASE
             WHEN g.player_id = ? THEN opp.player_id
@@ -150,6 +151,11 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
             WHEN g.player_id = ? THEN g.opponent_score
             ELSE g.player_score
           END AS opp_score
+
+          CASE
+            WHEN g.player_id = ? THEN opp.is_placeholder_visitor
+            ELSE p.is_placeholder_visitor
+          END AS opponent_is_placeholder_visitor, g.visitor_note
       
         FROM games g
         JOIN clubs c
@@ -168,6 +174,7 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         `
       )
         .bind(
+          playerId,
           playerId,
           playerId,
           playerId,
