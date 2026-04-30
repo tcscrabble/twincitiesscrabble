@@ -303,19 +303,24 @@ async function loadPlayer(playerId, year, club) {
         </tr>
       </thead>
       <tbody>
-        ${games.map(g => {
-          const spread = Number(g.my_score) - Number(g.opp_score);
-          return `
-            <tr>
-              <td>${escapeHtml(g.session_date)}</td>
-              <td>${escapeHtml(g.club_key)}</td>
-              <td>${escapeHtml(g.round_number ?? "")}</td>
-              <td>${escapeHtml(g.opponent_name)}</td>
-              <td>${number(g.my_score)}–${number(g.opp_score)}</td>
-              <td>${number(spread)}</td>
-            </tr>
-          `;
-        }).join("")}
+      ${games.map(g => {
+        const spread = Number(g.my_score) - Number(g.opp_score);
+        const opponentName = escapeHtml(g.opponent_name);
+        const opponentCell = Number(g.opponent_is_placeholder_visitor) === 1
+          ? opponentName
+          : `<a href="#player?id=${encodeURIComponent(g.opponent_id)}&year=${encodeURIComponent(year)}&club=${encodeURIComponent(club)}">${opponentName}</a>`;
+      
+        return `
+          <tr>
+            <td>${escapeHtml(g.session_date)}</td>
+            <td>${escapeHtml(g.club_key)}</td>
+            <td>${escapeHtml(g.round_number ?? "")}</td>
+            <td>${opponentCell}</td>
+            <td>${number(g.my_score)}–${number(g.opp_score)}</td>
+            <td>${number(spread)}</td>
+          </tr>
+        `;
+      }).join("")}
       </tbody>
     </table>
   </div>
