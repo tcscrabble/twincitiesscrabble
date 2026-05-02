@@ -360,10 +360,14 @@ async function loadPlayer(playerId, year, club) {
       </thead>
       <tbody>
       ${games.map(g => {
-        const spread = Number(g.my_score) - Number(g.opp_score);
+  
+        const myScore = Number(g.my_score);
+        const oppScore = Number(g.opp_score);
+        const spread = myScore - oppScore;
+        
         const result =
-          g.player_score > g.opponent_score ? "W" :
-          g.player_score < g.opponent_score ? "L" :
+          myScore > oppScore ? "W" :
+          myScore < oppScore ? "L" :
           "T";
         const resultClass =
           result === "W" ? "result-win" :
