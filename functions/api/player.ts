@@ -129,7 +129,6 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         g.session_date,
         c.club_key,
         c.name AS club_name,
-        g.round_number,
       
         CASE
           WHEN g.player_id = ? THEN opp.player_id
