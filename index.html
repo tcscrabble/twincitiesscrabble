@@ -296,7 +296,6 @@ async function loadPlayer(playerId, year, club) {
         <tr>
           <th>Date</th>
           <th>Club</th>
-          <th>Round</th>
           <th>Opponent</th>
           <th>Score</th>
           <th>Spread</th>
@@ -314,7 +313,6 @@ async function loadPlayer(playerId, year, club) {
           <tr>
             <td>${escapeHtml(g.session_date)}</td>
             <td>${escapeHtml(g.club_key)}</td>
-            <td>${escapeHtml(g.round_number ?? "")}</td>
             <td>${opponentCell}</td>
             <td>${number(g.my_score)}–${number(g.opp_score)}</td>
             <td>${number(spread)}</td>
