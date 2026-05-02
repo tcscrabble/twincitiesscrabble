@@ -317,7 +317,7 @@ async function loadLeaderboard(){const club=document.getElementById("clubSelect"
 <td>${number(r.win_pct)}%</td>
 <td>${number(r.spread)}</td>
 <td>${number(r.avg_score)}</td>
-<td>${number(r.opp_score)}</td>
+<td>${number(r.opp_avg)}</td>
 </tr>`).join("");}catch(error){body.innerHTML=`<tr>
 <td colspan="9">Could not load standings. ${escapeHtml(error.message)}</td></tr>`;}}
 document.addEventListener("click", event => {
