@@ -270,7 +270,24 @@
     </article>
   </div>
 </section>
-<section id="standings" class="standings-panel card"><div class="panel-head"><div><h2 id="standings-title">Standings</h2><div id="standings-note">Loading standings…</div></div><div class="filters"><label for="clubSelect">Club</label><select id="clubSelect"><option value="NM">North Metro</option><option value="DAY">Monday Park Tavern</option><option value="ALL">All clubs</option></select><label for="yearSelect">Year</label><select id="yearSelect"><option value="2026">2026</option><option value="2025">2025</option></select></div></div><div class="table-wrap"><table><thead><tr><th>Rank</th><th>Player</th><th>Games</th><th>Wins</th><th>Losses</th><th>Ties</th><th>Win %</th><th>Spread</th><th>Total Points</th></tr></thead><tbody id="leaderboard-body"><tr><td colspan="9">Loading…</td></tr></tbody></table></div></section>
+<section id="standings" class="standings-panel card"><div class="panel-head"><div><h2 id="standings-title">Standings</h2><div id="standings-note">Loading standings…</div></div><div class="filters"><label for="clubSelect">Club</label><select id="clubSelect"><option value="NM">North Metro</option><option value="DAY">Monday Park Tavern</option><option value="ALL">All clubs</option></select><label for="yearSelect">Year</label><select id="yearSelect"><option value="2026">2026</option><option value="2025">2025</option></select></div></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Rank</th>
+          <th>Player</th>
+          <th>Games</th>
+          <th>Wins</th>
+          <th>Losses</th>
+          <th>Ties</th>
+          <th>Win %</th>
+          <th>Spread</th>
+          <th>Avg</th>
+          <th>Opp Avg</th>
+        </tr></thead>
+      <tbody id="leaderboard-body">
+        <tr>
+          <td colspan="9">Loading…</td></tr></tbody></table></div></section>
 <section class="info-grid"><article class="card" id="how-it-works"><h2>ℹ️ How Our Sessions Work</h2><ul class="bullets"><li><b>Games are 1:1.</b> Every game is a head-to-head match.</li><li><b>We play in rounds.</b> A round is a “wave” where games start together.</li><li><b>Pairings are dynamic.</b> Pairings for the next round are based on results.</li><li><b>No fixed number of rounds.</b> Rounds continue as long as people are playing.</li><li><b>Odd number of players?</b> You can play two separate games that round.</li></ul></article><article class="card" id="news"><h2>📣 Latest News</h2><div class="news-list"><div class="news-item"><div class="news-date">Apr 27</div><div>Thanks to everyone who played in the April club challenge!</div></div><div class="news-item"><div class="news-date">Apr 13</div><div>New player welcome packet now available.</div></div><div class="news-item"><div class="news-date">Mar 30</div><div>Reminder: Davanni’s has great food and drink specials during our club!</div></div></div></article></section>
 </main><footer><div class="footer-inner"><div><strong>Twin Cities Scrabble</strong><br>Play. Connect. Compete.</div><div>Questions? Get in touch!<br>twincitiesscrabble@gmail.com</div><div>© 2026 Twin Cities Scrabble</div></div></footer>
 <script>
@@ -293,7 +310,16 @@ async function loadLeaderboard(){const club=document.getElementById("clubSelect"
     ${escapeHtml(r.name)}
   </a>
 </td>
-<td>${number(r.games)}</td><td>${number(r.wins)}</td><td>${number(r.losses)}</td><td>${number(r.ties)}</td><td>${number(r.win_pct)}%</td><td>${number(r.spread)}</td><td>${number(r.total_points)}</td></tr>`).join("");}catch(error){body.innerHTML=`<tr><td colspan="9">Could not load standings. ${escapeHtml(error.message)}</td></tr>`;}}
+<td>${number(r.games)}</td>
+<td>${number(r.wins)}</td>
+<td>${number(r.losses)}</td>
+<td>${number(r.ties)}</td>
+<td>${number(r.win_pct)}%</td>
+<td>${number(r.spread)}</td>
+<td>${number(r.avg_score)}</td>
+<td>${number(r.opp_score)}</td>
+</tr>`).join("");}catch(error){body.innerHTML=`<tr>
+<td colspan="9">Could not load standings. ${escapeHtml(error.message)}</td></tr>`;}}
 document.addEventListener("click", event => {
   const link = event.target.closest(".player-link");
   if (!link) return;
