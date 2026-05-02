@@ -227,7 +227,11 @@ function showStandings(club){const panel=document.getElementById("standings");co
 document.querySelectorAll("[data-club-link]").forEach(el=>{el.addEventListener("click",event=>{event.preventDefault();showStandings(el.getAttribute("data-club-link"));});});
 document.getElementById("clubSelect").addEventListener("change",loadLeaderboard);
 document.getElementById("yearSelect").addEventListener("change",loadLeaderboard);
-async function loadLeaderboard(){const club=document.getElementById("clubSelect").value;const year=document.getElementById("yearSelect").value;const title=document.getElementById("standings-title");const note=document.getElementById("standings-note");const body=document.getElementById("leaderboard-body");title.textContent=`${clubLabels[club]} Standings`;note.textContent=`Filtered to ${year}`;body.innerHTML=`<tr><td colspan="9">Loading…</td></tr>`;const params=new URLSearchParams({year});if(club!=="ALL")params.set("club",club);try{const response=await fetch(`/api/leaderboard?${params.toString()}`);if(!response.ok)throw new Error(`HTTP ${response.status}`);const data=await response.json();const rows=data.results||[];if(!rows.length){body.innerHTML=`<tr><td colspan="9">No games found for this filter.</td></tr>`;return;}body.innerHTML=rows.map((r,index)=>`<tr><td>${index+1}</td>
+async function loadLeaderboard(){const club=document.getElementById("clubSelect").value;
+                                 const year=document.getElementById("yearSelect").value;
+                                 const title=document.getElementById("standings-title");
+                                 const note=document.getElementById("standings-note");
+                                 const body=document.getElementById("leaderboard-body");title.textContent=`${clubLabels[club]} Standings`;note.textContent=`Filtered to ${year}`;body.innerHTML=`<tr><td colspan="9">Loading…</td></tr>`;const params=new URLSearchParams({year});if(club!=="ALL")params.set("club",club);try{const response=await fetch(`/api/leaderboard?${params.toString()}`);if(!response.ok)throw new Error(`HTTP ${response.status}`);const data=await response.json();const rows=data.results||[];if(!rows.length){body.innerHTML=`<tr><td colspan="9">No games found for this filter.</td></tr>`;return;}body.innerHTML=rows.map((r,index)=>`<tr><td>${index+1}</td>
 <td>
   <a class="player-link"
      href="#player"
@@ -238,7 +242,7 @@ async function loadLeaderboard(){const club=document.getElementById("clubSelect"
   </a>
 </td>
 <td>${number(r.games)}</td><td>${number(r.wins)}</td><td>${number(r.losses)}</td><td>${number(r.ties)}</td><td>${number(r.win_pct)}%</td><td>${number(r.spread)}</td><td>${number(r.total_points)}</td></tr>`).join("");}catch(error){body.innerHTML=`<tr><td colspan="9">Could not load standings. ${escapeHtml(error.message)}</td></tr>`;}}
-document.getElementById("leaderboard-body").addEventListener("click", event => {
+document.addEventListener("click", event => {
   const link = event.target.closest(".player-link");
   if (!link) return;
 
@@ -307,7 +311,11 @@ async function loadPlayer(playerId, year, club) {
         const opponentName = escapeHtml(g.opponent_name);
         const opponentCell = Number(g.opponent_is_placeholder_visitor) === 1
           ? opponentName
-          : `<a href="#player?id=${encodeURIComponent(g.opponent_id)}&year=${encodeURIComponent(year)}&club=${encodeURIComponent(club)}">${opponentName}</a>`;
+          : `<a class="player-link"
+            href="#player?id=${encodeURIComponent(g.opponent_id)}&year=${encodeURIComponent(year)}&club=${encodeURIComponent(club)}"
+            data-player-id="${escapeHtml(g.opponent_id)}"
+            data-year="${escapeHtml(year)}"
+            data-club="${escapeHtml(club)}">${opponentName}</a>`;
       
         return `
           <tr>
