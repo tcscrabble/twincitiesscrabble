@@ -254,7 +254,13 @@
     </article>
   </div>
 </section>
-<section id="standings" class="standings-panel card"><div class="panel-head"><div><h2 id="standings-title">Standings</h2><div id="standings-note">Loading standings…</div></div><div class="filters"><label for="clubSelect">Club</label><select id="clubSelect"><option value="NM">North Metro</option><option value="DAY">Monday Park Tavern</option><option value="ALL">All clubs</option></select><label for="yearSelect">Year</label><select id="yearSelect"><option value="2026">2026</option><option value="2025">2025</option></select></div></div>
+<section id="standings" class="standings-panel card">
+  <div class="panel-head">
+    <div>
+      <h2 id="standings-title">Standings</h2>
+      <div id="standings-note">Loading standings…</div>
+    </div>
+    <div class="filters"><label for="clubSelect">Club</label><select id="clubSelect"><option value="NM">North Metro</option><option value="DAY">Monday Park Tavern</option><option value="ALL">All clubs</option></select><label for="yearSelect">Year</label><select id="yearSelect"><option value="2026">2026</option><option value="2025">2025</option></select></div></div>
   <div class="table-wrap">
     <table>
       <thead>
@@ -271,7 +277,7 @@
         </tr></thead>
       <tbody id="leaderboard-body">
         <tr>
-          <td colspan="9">Loading…</td></tr></tbody></table></div></section>
+          <td colspan="10">Loading…</td></tr></tbody></table></div></section>
 <section class="info-grid">
   <article class="card" id="how-it-works">
     <h2>ℹ️ How Our Sessions Work</h2>
@@ -288,7 +294,9 @@
     <div class="news-list">
       <div class="news-item">
         <div class="news-date">May 4</div>
-        <div>Congratulations to Jason Vaysberg for a first place finish in the Eden Prairie Warm-Up. You can find all of the final results at <a href="http://tiny.cc/LiveCoverage/">tiny.cc/LiveCoverage</a>.</div>
+        <div>Congratulations to Jason Vaysberg for a first place finish in the Eden Prairie Warm-Up.
+              You can find all of the final results <a href="https://tiny.cc/LiveCoverage/" target="_blank" rel="noopener noreferrer">here</a>.
+      </div>
       </div>
       <div class="news-item"><div class="news-date">Apr 27</div><div>Thanks to everyone who played in the April club challenge!</div></div>
       <div class="news-item"><div class="news-date">Apr 13</div><div>New player welcome packet now available.</div></div>
@@ -300,9 +308,9 @@
   <article class="card" id="scrabble-links">
     <h2>🔗 Scrabble Links</h2>
     <ul class="bullets">
-      <li><a href="https://www.scrabbleplayers.org/">NASPA</a> — North American Scrabble Players Association</li>
-      <li><a href="https://www.wordgameplayers.org/">WGPO</a> — Word Game Players’ Organization</li>
-      <li><a href="https://www.cross-tables.com/">Cross-Tables</a> — tournament results and player statistics</li>
+      <li><a href="https://www.scrabbleplayers.org/" target="_blank" rel="noopener noreferrer">NASPA</a> — North American Scrabble Players Association</li>
+      <li><a href="https://www.wordgameplayers.org/" target="_blank" rel="noopener noreferrer">WGPO</a> — Word Game Players’ Organization</li>
+      <li><a href="https://www.cross-tables.com/" target="_blank" rel="noopener noreferrer">Cross-Tables</a> — tournament results and player statistics</li>
     </ul>
   </article>
 </section>
@@ -317,7 +325,17 @@ async function loadLeaderboard(){const club=document.getElementById("clubSelect"
                                  const year=document.getElementById("yearSelect").value;
                                  const title=document.getElementById("standings-title");
                                  const note=document.getElementById("standings-note");
-                                 const body=document.getElementById("leaderboard-body");title.textContent=`${clubLabels[club]} Standings`;note.textContent=`Filtered to ${year}`;body.innerHTML=`<tr><td colspan="9">Loading…</td></tr>`;const params=new URLSearchParams({year});if(club!=="ALL")params.set("club",club);try{const response=await fetch(`/api/leaderboard?${params.toString()}`);if(!response.ok)throw new Error(`HTTP ${response.status}`);const data=await response.json();const rows=data.results||[];if(!rows.length){body.innerHTML=`<tr><td colspan="9">No games found for this filter.</td></tr>`;return;}body.innerHTML=rows.map((r,index)=>`<tr><td>${index+1}</td>
+                                 const body=document.getElementById("leaderboard-body");
+                                   title.textContent=`${clubLabels[club]} Standings`;
+                                   note.textContent=`Filtered to ${year}`;
+                                   body.innerHTML=`<tr><td colspan="10">Loading…</td></tr>`;
+                                 const params=new URLSearchParams({year});
+                                 if(club!=="ALL")params.set("club",club);
+                                 try{const response=await fetch(`/api/leaderboard?${params.toString()}`);
+                                     if(!response.ok)throw new Error(`HTTP ${response.status}`);
+                                     const data=await response.json();const rows=data.results||[];
+                                     if(!rows.length){body.innerHTML=`<tr><td colspan="10">No games found for this filter.</td></tr>`;
+                                        return;}body.innerHTML=rows.map((r,index)=>`<tr><td>${index+1}</td>
 <td>
   <a class="player-link"
      href="#player"
@@ -334,9 +352,9 @@ async function loadLeaderboard(){const club=document.getElementById("clubSelect"
 <td>${number(r.win_pct)}%</td>
 <td>${number(r.spread)}</td>
 <td>${number(r.avg_score)}</td>
-<td>${number(r.opp_score)}</td>
+<td>${number(r.opp_avg)}</td>
 </tr>`).join("");}catch(error){body.innerHTML=`<tr>
-<td colspan="9">Could not load standings. ${escapeHtml(error.message)}</td></tr>`;}}
+<td colspan="10">Could not load standings. ${escapeHtml(error.message)}</td></tr>`;}}
 document.addEventListener("click", event => {
   const link = event.target.closest(".player-link");
   if (!link) return;
@@ -454,5 +472,16 @@ async function loadPlayer(playerId, year, club) {
   function number(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString():"0";}
   function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
   </script>
+
+    <script id="auto-external-links">
+  document.querySelectorAll('a[href]').forEach(a => {
+    const url = new URL(a.href, window.location.origin);
+    if (url.origin !== window.location.origin) {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+  </script>
+  
   </body>
   </html>
