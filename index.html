@@ -164,7 +164,7 @@
   <a class="action" href="#standings" data-club-link="NM">
     <span class="circle">🏆</span>
     <strong>View North Metro standings</strong>
-    <span>Davanni’s · Roseville</span></a>
+    <span>Davanni’s Pizza & Hot Hoagies · Roseville</span></a>
   <a class="action" href="#standings" data-club-link="DAY">
     <span class="circle blue">☀</span>
     <strong>View Monday Park Tavern standings</strong>
@@ -183,8 +183,8 @@
   <article class="card club-card"><div>
     <h3>North Metro Club</h3>
     <p class="detail">📍 
-    <span><b>Davanni's in Roseville</b><br>1995 County Road B2 W, Roseville, MN 55113</span></p>
-    <a class="button" href="https://www.google.com/maps/search/?api=1&query=Davanni%27s%201995%20County%20Road%20B2%20W%20Roseville%20MN%2055113">View map</a>
+    <span><b>Davanni's Pizza & Hot Hoagies</b><br>1905 W Perimeter Dr, Roseville, MN 55113</span></p>
+    <a class="button" href="https://www.google.com/maps/search/?api=1&query=Davanni%27s%20Pizza%20%26%20Hot%20Hoagies%201905%20W%20Perimeter%20Dr%20Roseville%20MN%2055113">View map</a>
     <p class="detail">🕒 <span>
       <b>Thursdays · 2:00 PM – 8:00 PM</b></span></p>
     <p>Our main evening club. All skill levels welcome! Great food, friendly competition, and plenty of tiles.</p>
@@ -312,6 +312,11 @@
       <li><a href="https://www.wordgameplayers.org/" target="_blank" rel="noopener noreferrer">WGPO</a> — Word Game Players’ Organization</li>
       <li><a href="https://www.cross-tables.com/" target="_blank" rel="noopener noreferrer">Cross-Tables</a> — tournament results and player statistics</li>
     </ul>
+  </article>
+  <article class="card" id="director">
+    <h2>Club Director</h2>
+    <p>Carol Dustin is the Director of Twin Cities Scrabble.</p>
+    <p class="detail">✉ <span id="director-email"></span></p>
   </article>
 </section>
 </main><footer><div class="footer-inner"><div><strong>Twin Cities Scrabble</strong><br>Play. Connect. Compete.</div><div>Questions? Get in touch!<br>twincitiesscrabble@gmail.com</div><div>© 2026 Twin Cities Scrabble</div></div></footer>
@@ -471,12 +476,19 @@ async function loadPlayer(playerId, year, club) {
   document.getElementById("player-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });}
   function number(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString():"0";}
   function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+  const directorEmailUser = "dustydame";
+  const directorEmailDomain = "gmail.com";
+  const directorEmailEl = document.getElementById("director-email");
+  if (directorEmailEl) {
+    const directorEmail = `${directorEmailUser}@${directorEmailDomain}`;
+    directorEmailEl.innerHTML = `<a href="mailto:${directorEmail}">${directorEmail}</a>`;
+  }
   </script>
 
     <script id="auto-external-links">
   document.querySelectorAll('a[href]').forEach(a => {
     const url = new URL(a.href, window.location.origin);
-    if (url.origin !== window.location.origin) {
+    if ((url.protocol === "http:" || url.protocol === "https:") && url.origin !== window.location.origin) {
       a.setAttribute('target', '_blank');
       a.setAttribute('rel', 'noopener noreferrer');
     }
