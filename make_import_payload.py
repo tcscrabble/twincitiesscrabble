@@ -995,7 +995,7 @@ def archive_existing_output(out_file: str) -> None:
     if not out_path.exists():
         return
 
-    archive_dir = Path.cwd() / "Archive"
+    archive_dir = out_path.parent / "Archive"
     archive_dir.mkdir(exist_ok=True)
 
     datestamp = datetime.now().strftime("%Y_%b_%d")
@@ -1171,9 +1171,9 @@ def main():
 
     if unmatched_games:
         if multi_club_mode:
-            report_path = "unmatched_games_report_ALL.txt"
+            report_path = out_path.parent / "unmatched_games_report_ALL.txt"
         else:
-            report_path = f"unmatched_games_report_{clubs[0]['club']}.txt"
+            report_path = out_path.parent / f"unmatched_games_report_{clubs[0]['club']}.txt"
 
         def write_unmatched_report(path: str, items: List[Dict[str, Any]]) -> None:
             with open(path, "w", encoding="utf-8") as f:
@@ -1207,7 +1207,7 @@ def main():
 
                     f.write("\n")
 
-        write_unmatched_report(report_path, unmatched_games)
+        write_unmatched_report(str(report_path), unmatched_games)
         print(f"⚠️  Wrote unmatched report: {report_path}")
 
         filtered_report_path = str(
@@ -1220,7 +1220,7 @@ def main():
             if item["type"] != "SCORE_MISMATCH"
         ]
 
-        write_unmatched_report(filtered_report_path, non_score_mismatch_games)
+        write_unmatched_report(str(filtered_report_path), non_score_mismatch_games)
         print(f"⚠️  Wrote non-score-mismatch report: {filtered_report_path}")
 
     print(f"Wrote {out_path}")
