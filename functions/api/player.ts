@@ -29,7 +29,13 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
   try {
     player = await env.DB.prepare(
       `
-      SELECT player_id AS id, display_name AS name
+      SELECT
+        player_id AS id,
+        display_name AS name,
+        naspa_rating,
+        wgpo_nwl_rating,
+        wgpo_wow_rating,
+        rating_notes
       FROM players
       WHERE player_id = ?
       `

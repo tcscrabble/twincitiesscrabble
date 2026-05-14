@@ -205,3 +205,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Twin Cities Scrabble generated import outputs
+combined_payload.json
+combined_load.sql
+import_payload.json
+load.sql
+day_payload.json
+day_load.sql
+nm_payload.json
+nm_load.sql
+unmatched_games_report*.txt
+mismatch_report.txt
+
+# Local Cloudflare/dependency output
+.wrangler/
+node_modules/

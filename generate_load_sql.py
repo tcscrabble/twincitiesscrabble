@@ -15,6 +15,89 @@ def player_key(display_name: str) -> str:
 def sql_quote(s: str) -> str:
     return "'" + s.replace("'", "''") + "'"
 
+PLAYER_RATING_FIELDS = [
+    "naspa_name",
+    "naspa_rating",
+    "wgpo_name",
+    "wgpo_nwl_rating",
+    "wgpo_wow_rating",
+    "rating_notes",
+]
+
+INTEGER_PLAYER_RATING_FIELDS = {
+    "naspa_rating",
+    "wgpo_nwl_rating",
+    "wgpo_wow_rating",
+}
+
+def sql_nullable_text(value) -> str:
+    if value is None:
+        return "NULL"
+    value = norm_name(str(value))
+    if value == "":
+        return "NULL"
+    return sql_quote(value)
+
+def sql_nullable_int(value) -> str:
+    if value is None:
+        return "NULL"
+    value = str(value).strip().replace(",", "")
+    if value == "":
+        return "NULL"
+    try:
+        return str(int(float(value)))
+    except ValueError:
+        return "NULL"
+
+def sql_player_rating_value(field: str, value) -> str:
+    if field in INTEGER_PLAYER_RATING_FIELDS:
+        return sql_nullable_int(value)
+    return sql_nullable_text(value)
+
+def normalize_player_metadata(player: dict) -> dict | None:
+    display_name = norm_name(str(player.get("display_name") or ""))
+    if not display_name:
+        return None
+
+    normalized = {
+        "player_key": norm_name(str(player.get("player_key") or player_key(display_name))).upper(),
+        "display_name": display_name,
+        "is_placeholder_visitor": int(player.get("is_placeholder_visitor", 0) or 0),
+    }
+
+    for field in PLAYER_RATING_FIELDS:
+        normalized[field] = player.get(field)
+
+    return normalized
+
+def player_upsert_sql(display_name: str, is_placeholder: int = 0, metadata: dict | None = None) -> str:
+    display_name = norm_name(display_name)
+    key = player_key(display_name)
+
+    if metadata is not None:
+        display_name = norm_name(str(metadata.get("display_name") or display_name))
+        key = norm_name(str(metadata.get("player_key") or player_key(display_name))).upper()
+        is_placeholder = max(int(is_placeholder or 0), int(metadata.get("is_placeholder_visitor", 0) or 0))
+
+    columns = ["player_key", "display_name", "is_placeholder_visitor"]
+    values = [sql_quote(key), sql_quote(display_name), str(int(is_placeholder or 0))]
+    assignments = [
+        "display_name=excluded.display_name",
+        "is_placeholder_visitor=MAX(players.is_placeholder_visitor, excluded.is_placeholder_visitor)",
+    ]
+
+    if metadata is not None:
+        for field in PLAYER_RATING_FIELDS:
+            columns.append(field)
+            values.append(sql_player_rating_value(field, metadata.get(field)))
+            assignments.append(f"{field}=excluded.{field}")
+
+    return (
+        f"INSERT INTO players ({', '.join(columns)}) "
+        f"VALUES ({', '.join(values)}) "
+        f"ON CONFLICT(player_key) DO UPDATE SET {', '.join(assignments)};"
+    )
+
 def record_hash(rec: dict) -> str:
     blob = json.dumps(rec, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha1(blob).hexdigest()
@@ -29,6 +112,7 @@ def main():
 
     data = json.loads(in_path.read_text(encoding="utf-8"))
     games = data.get("games", [])
+    player_payload = data.get("players", [])
     wipe = bool(data.get("wipe", False))
 
     lines = []
@@ -39,6 +123,20 @@ def main():
         lines.append("DELETE FROM games;")
         lines.append("DELETE FROM players;")
         lines.append("DELETE FROM clubs;")
+
+    player_metadata_by_key = {}
+    for player in player_payload:
+        metadata = normalize_player_metadata(player)
+        if not metadata:
+            continue
+        player_metadata_by_key[metadata["player_key"]] = metadata
+        lines.append(
+            player_upsert_sql(
+                metadata["display_name"],
+                metadata.get("is_placeholder_visitor", 0),
+                metadata,
+            )
+        )
 
     # Ensure clubs/players exist, then insert games
     for g in games:
@@ -57,6 +155,10 @@ def main():
         p_score = int(g["player_score"])
         o_score = int(g["opponent_score"])
 
+        p_is_placeholder = int(g.get("player_is_placeholder_visitor", 0) or 0)
+        o_is_placeholder = int(g.get("opponent_is_placeholder_visitor", 0) or 0)
+        visitor_note = g.get("visitor_note")
+
         spread = p_score - o_score
         result = "W" if spread > 0 else ("L" if spread < 0 else "T")
 
@@ -65,15 +167,20 @@ def main():
 
         p_key = player_key(p_name)
         o_key = player_key(o_name)
+        p_metadata = player_metadata_by_key.get(p_key)
+        o_metadata = player_metadata_by_key.get(o_key)
+
+        # Canonical game identity: same real-world game gets same hash
+        player_a, player_b = sorted([p_key, o_key])
+        score_low, score_high = sorted([p_score, o_score])
 
         raw_hash = record_hash({
             "session_date": session_date,
             "location": club_key,
-            "round_number": rnd,
-            "player_id": p_key,
-            "opponent_id": o_key,
-            "player_score": p_score,
-            "opponent_score": o_score,
+            "player_a": player_a,
+            "player_b": player_b,
+            "score_low": score_low,
+            "score_high": score_high,
         })
 
         # Upsert club
@@ -83,26 +190,22 @@ def main():
         )
 
         # Upsert players
-        lines.append(
-            f"INSERT INTO players (player_key, display_name) VALUES ({sql_quote(p_key)}, {sql_quote(p_name)}) "
-            f"ON CONFLICT(player_key) DO UPDATE SET display_name=excluded.display_name;"
-        )
-        lines.append(
-            f"INSERT INTO players (player_key, display_name) VALUES ({sql_quote(o_key)}, {sql_quote(o_name)}) "
-            f"ON CONFLICT(player_key) DO UPDATE SET display_name=excluded.display_name;"
-        )
+        lines.append(player_upsert_sql(p_name, p_is_placeholder, p_metadata))
+        lines.append(player_upsert_sql(o_name, o_is_placeholder, o_metadata))
         # Insert game (idempotent by raw_hash)
         # Note: we resolve ids via subqueries (fine for D1/SQLite; slower but simple).
         round_sql = "NULL" if rnd in (None, "") else str(int(rnd))
+        visitor_note_sql = "NULL" if visitor_note in (None, "") else sql_quote(str(visitor_note))
+
         lines.append(
             "INSERT INTO games (session_date, club_id, round_number, player_id, opponent_id, "
-            "player_score, opponent_score, spread, result, raw_hash) VALUES ("
+            "player_score, opponent_score, spread, result, raw_hash, visitor_note) VALUES ("
             f"{sql_quote(session_date)}, "
             f"(SELECT club_id FROM clubs WHERE club_key={sql_quote(club_key)}), "
             f"{round_sql}, "
             f"(SELECT player_id FROM players WHERE player_key={sql_quote(p_key)}), "
             f"(SELECT player_id FROM players WHERE player_key={sql_quote(o_key)}), "
-            f"{p_score}, {o_score}, {spread}, {sql_quote(result)}, {sql_quote(raw_hash)}"
+            f"{p_score}, {o_score}, {spread}, {sql_quote(result)}, {sql_quote(raw_hash)}, {visitor_note_sql}"
             ") "
             "ON CONFLICT(raw_hash) DO NOTHING;"
         )
