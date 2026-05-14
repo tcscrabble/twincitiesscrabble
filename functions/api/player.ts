@@ -35,6 +35,8 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         naspa_rating,
         wgpo_nwl_rating,
         wgpo_wow_rating,
+        wgpo_url,
+        cross_tables_url,
         rating_notes
       FROM players
       WHERE player_id = ?

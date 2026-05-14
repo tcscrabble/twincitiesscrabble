@@ -18,8 +18,10 @@ CREATE TABLE players (
   naspa_name TEXT,
   naspa_rating INTEGER,
   wgpo_name TEXT,
+  wgpo_url TEXT,
   wgpo_nwl_rating INTEGER,
   wgpo_wow_rating INTEGER,
+  cross_tables_url TEXT,
   rating_notes TEXT
 );
 

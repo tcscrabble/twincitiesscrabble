@@ -297,8 +297,10 @@ PLAYER_RATING_FIELDS = [
     "naspa_name",
     "naspa_rating",
     "wgpo_name",
+    "wgpo_url",
     "wgpo_nwl_rating",
     "wgpo_wow_rating",
+    "cross_tables_url",
     "rating_notes",
 ]
 
@@ -375,8 +377,12 @@ def read_player_ratings(
                 "naspa_name": parse_optional_rating_text(row.get("naspa_name")),
                 "naspa_rating": parse_optional_rating_int(row.get("naspa_rating")),
                 "wgpo_name": parse_optional_rating_text(row.get("wgpo_name")),
+                "wgpo_url": parse_optional_rating_text(
+                    row.get("wgpo_url") if row.get("wgpo_url") is not None else row.get("wpgo_url")
+                ),
                 "wgpo_nwl_rating": parse_optional_rating_int(row.get("wgpo_nwl_rating")),
                 "wgpo_wow_rating": parse_optional_rating_int(row.get("wgpo_wow_rating")),
+                "cross_tables_url": parse_optional_rating_text(row.get("cross_tables_url")),
                 "rating_notes": parse_optional_rating_text(
                     row.get("rating_notes") if row.get("rating_notes") is not None else row.get("notes")
                 ),

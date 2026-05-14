@@ -73,7 +73,7 @@
       color: gray;
       font-weight: bold;
     }              
-    .player-ratings{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px}.rating-pill{border:1px solid var(--line);border-radius:8px;background:#fbf8ef;padding:8px 10px;display:grid;gap:2px;min-width:140px}.rating-pill span{font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800}.rating-pill strong{color:var(--green);font-size:1.05rem}.rating-note{flex-basis:100%;color:var(--muted);font-size:.94rem}
+    .player-ratings{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px}.rating-pill{border:1px solid var(--line);border-radius:8px;background:#fbf8ef;padding:8px 10px;display:grid;gap:2px;min-width:140px}.rating-pill span{font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800}.rating-pill strong{color:var(--green);font-size:1.05rem}.rating-pill strong a{color:inherit;text-decoration:none}.rating-pill strong a:hover{text-decoration:underline}.rating-note,.rating-profile{flex-basis:100%;color:var(--muted);font-size:.94rem}.rating-profile a{font-weight:800;color:var(--green);text-decoration:none}.rating-profile a:hover{text-decoration:underline}
     footer{background:var(--green);color:white;margin-top:20px}.footer-inner{max-width:1180px;margin:0 auto;padding:22px 28px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:start}
     @media(max-width:900px){.nav{min-height:auto;padding:16px 18px 10px;align-items:flex-start;flex-direction:column;gap:8px}.nav-links{width:100%;overflow-x:auto;gap:18px;font-size:.9rem;padding-bottom:3px}.nav-links a{padding:6px 0 9px;white-space:nowrap}.hero{min-height:460px}.hero-inner{padding:36px 18px}.script{text-align:center;font-size:3rem}.mn-bg{inset:46px 0 auto 0;height:330px}.mn-bg img{max-width:86vw}.board-corner,.rack{display:none}main{padding:0 18px;margin-top:-22px}.quick-actions{grid-template-columns:1fr 1fr}.action{border-right:0;border-bottom:1px solid var(--line);min-height:142px;padding:20px 12px}.cards-2,.events,.info-grid{grid-template-columns:1fr}.club-card{grid-template-columns:1fr}.footer-inner{grid-template-columns:1fr}}
     @media(max-width:520px){.brand{font-size:1.45rem}.hero{min-height:430px}.tile-title{gap:6px}.scrabble-tile{width:42px;border-radius:5px}.scrabble-tile sub{right:5px;bottom:3px}.quick-actions{grid-template-columns:1fr}.action{min-height:auto;grid-template-columns:56px 1fr;justify-items:start;text-align:left;align-items:center}.circle{width:52px;height:52px;font-size:1.45rem}.event-card{grid-template-columns:76px 1fr;gap:14px}.date-badge{min-height:100px}.card{padding:18px}}
@@ -481,11 +481,20 @@ async function loadPlayer(playerId, year, club) {
   function number(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString():"0";}
   function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
   function ratingValue(value){if(value===null||value===undefined||String(value).trim()==="")return null;const n=Number(value);return Number.isFinite(n)?n:null;}
-  function renderRatingPill(label,value){return `<div class="rating-pill"><span>${escapeHtml(label)}</span><strong>${number(value)}</strong></div>`;}
+  function profileUrl(value){const url=String(value??"").trim();return /^https?:\/\//i.test(url)?url:null;}
+  function renderRatingPill(label,value,url=null){
+    const rating = number(value);
+    const content = url
+      ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${rating}</a>`
+      : rating;
+    return `<div class="rating-pill"><span>${escapeHtml(label)}</span><strong>${content}</strong></div>`;
+  }
   function renderRatings(player){
     const naspaRating = ratingValue(player.naspa_rating);
     const wgpoNwlRating = ratingValue(player.wgpo_nwl_rating);
     const wgpoWowRating = ratingValue(player.wgpo_wow_rating);
+    const wgpoUrl = profileUrl(player.wgpo_url);
+    const crossTablesUrl = profileUrl(player.cross_tables_url);
     const ratingNotes = String(player.rating_notes ?? "").trim();
     const items = [];
 
@@ -493,10 +502,13 @@ async function loadPlayer(playerId, year, club) {
       items.push(renderRatingPill("NASPA/NWL Rating", naspaRating));
     }
     if (wgpoNwlRating !== null && wgpoNwlRating !== naspaRating) {
-      items.push(renderRatingPill("WGPO NWL Rating", wgpoNwlRating));
+      items.push(renderRatingPill("WGPO NWL Rating", wgpoNwlRating, wgpoUrl));
     }
     if (wgpoWowRating !== null) {
-      items.push(renderRatingPill("WGPO WOW Rating", wgpoWowRating));
+      items.push(renderRatingPill("WGPO WOW Rating", wgpoWowRating, wgpoUrl));
+    }
+    if (crossTablesUrl) {
+      items.push(`<div class="rating-profile"><a href="${escapeHtml(crossTablesUrl)}" target="_blank" rel="noopener">Cross-Tables profile</a></div>`);
     }
     if (ratingNotes) {
       items.push(`<div class="rating-note"><b>Rating note:</b> ${escapeHtml(ratingNotes)}</div>`);

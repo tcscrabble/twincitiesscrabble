@@ -19,8 +19,10 @@ PLAYER_RATING_FIELDS = [
     "naspa_name",
     "naspa_rating",
     "wgpo_name",
+    "wgpo_url",
     "wgpo_nwl_rating",
     "wgpo_wow_rating",
+    "cross_tables_url",
     "rating_notes",
 ]
 
