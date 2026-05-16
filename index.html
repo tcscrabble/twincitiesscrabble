@@ -322,7 +322,7 @@
     <p class="detail">✉ <span id="director-email"></span></p>
   </article>
 </section>
-</main><footer><div class="footer-inner"><div><strong>Twin Cities Scrabble</strong><br>Play. Connect. Compete.</div><div>Questions? Get in touch!<br>twincitiesscrabble@gmail.com</div><div>© 2026 Twin Cities Scrabble</div></div></footer>
+</main><footer><div class="footer-inner"><div><strong>Twin Cities Scrabble</strong><br>Play. Connect. Compete.</div><div>Questions? Get in touch with Carol!<br><span id="footer-email"></span></div><div>© 2026 Twin Cities Scrabble</div></div></footer>
 <script>
 const clubLabels={NM:"North Metro",DAY:"Monday Park Tavern",ALL:"All Clubs"};
 function showStandings(club){const panel=document.getElementById("standings");const clubSelect=document.getElementById("clubSelect");panel.classList.add("active");clubSelect.value=club||"NM";loadLeaderboard();panel.scrollIntoView({behavior:"smooth",block:"start"});}
@@ -523,10 +523,14 @@ async function loadPlayer(playerId, year, club) {
   }
   const directorEmailUser = "dustydame";
   const directorEmailDomain = "gmail.com";
+  const directorEmail = `${directorEmailUser}@${directorEmailDomain}`;
   const directorEmailEl = document.getElementById("director-email");
   if (directorEmailEl) {
-    const directorEmail = `${directorEmailUser}@${directorEmailDomain}`;
     directorEmailEl.innerHTML = `<a href="mailto:${directorEmail}">${directorEmail}</a>`;
+  }
+  const footerEmailEl = document.getElementById("footer-email");
+  if (footerEmailEl) {
+    footerEmailEl.innerHTML = `<a href="mailto:${directorEmail}">${directorEmail}</a>`;
   }
   </script>
 
