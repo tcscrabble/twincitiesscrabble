@@ -57,7 +57,7 @@
     .bullets{list-style:none;padding:0;margin:0;display:grid;gap:10px}.bullets li{padding-left:30px;position:relative}.bullets li:before{content:"✓";position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:var(--green);color:white;display:grid;place-items:center;font-size:.78rem;font-weight:900}
     .news-list{display:grid;gap:15px;margin-top:14px}.news-item{display:grid;grid-template-columns:70px 1fr;gap:14px}.news-date{color:var(--muted)}
     .standings-panel{display:none;margin-bottom:26px}.standings-panel.active{display:block}.panel-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:12px}.panel-head h2{margin:0;color:var(--green)}
-    .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap}select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:white;font-weight:700}
+    .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.checkbox-filter{display:inline-flex;align-items:center;gap:7px;font-weight:700}.checkbox-filter input{width:16px;height:16px;accent-color:var(--green)}select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:white;font-weight:700}
     .table-wrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 5px 18px rgba(0,0,0,.08)}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}th{font-size:.86rem;text-transform:uppercase;letter-spacing:.04em;color:#4d5a50;background:#fbf8ef}.player-link{color:var(--blue);font-weight:800;text-decoration:none}
     .result-win {
       color: green;
@@ -261,7 +261,7 @@
       <h2 id="standings-title">Standings</h2>
       <div id="standings-note">Loading standings…</div>
     </div>
-    <div class="filters"><label for="clubSelect">Club</label><select id="clubSelect"><option value="NM">North Metro</option><option value="DAY">Monday Park Tavern</option><option value="ALL">All clubs</option></select><label for="yearSelect">Year</label><select id="yearSelect"><option value="2026">2026</option><option value="2025">2025</option></select></div></div>
+    <div class="filters"><label for="clubSelect">Club</label><select id="clubSelect"><option value="NM">North Metro</option><option value="DAY">Monday Park Tavern</option><option value="ALL">All clubs</option></select><label for="yearSelect">Year</label><select id="yearSelect"><option value="2026">2026</option><option value="2025">2025</option></select><label class="checkbox-filter" for="includeVisitorsToggle"><input id="includeVisitorsToggle" type="checkbox">Show visitors</label></div></div>
   <div class="table-wrap">
     <table>
       <thead>
@@ -328,16 +328,19 @@ function showStandings(club){const panel=document.getElementById("standings");co
 document.querySelectorAll("[data-club-link]").forEach(el=>{el.addEventListener("click",event=>{event.preventDefault();showStandings(el.getAttribute("data-club-link"));});});
 document.getElementById("clubSelect").addEventListener("change",loadLeaderboard);
 document.getElementById("yearSelect").addEventListener("change",loadLeaderboard);
+document.getElementById("includeVisitorsToggle").addEventListener("change",loadLeaderboard);
 async function loadLeaderboard(){const club=document.getElementById("clubSelect").value;
                                  const year=document.getElementById("yearSelect").value;
+                                 const includeVisitors=document.getElementById("includeVisitorsToggle").checked;
                                  const title=document.getElementById("standings-title");
                                  const note=document.getElementById("standings-note");
                                  const body=document.getElementById("leaderboard-body");
                                    title.textContent=`${clubLabels[club]} Standings`;
-                                   note.textContent=`Filtered to ${year}`;
+                                   note.textContent=`Filtered to ${year}${includeVisitors?" · visitors shown":""}`;
                                    body.innerHTML=`<tr><td colspan="10">Loading…</td></tr>`;
                                  const params=new URLSearchParams({year});
                                  if(club!=="ALL")params.set("club",club);
+                                 if(includeVisitors)params.set("includeVisitors","1");
                                  try{const response=await fetch(`/api/leaderboard?${params.toString()}`);
                                      if(!response.ok)throw new Error(`HTTP ${response.status}`);
                                      const data=await response.json();const rows=data.results||[];

@@ -4,6 +4,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const year = rawYear ? Number(rawYear) : new Date().getFullYear();
   const rawClub = url.searchParams.get("club");
   const club = rawClub && rawClub !== "ALL" ? rawClub.toUpperCase() : null;
+  const includeVisitors =
+    url.searchParams.get("includeVisitors") === "1" ||
+    url.searchParams.get("includeVisitors") === "true";
 
   if (!Number.isInteger(year) || year < 1900 || year > 3000) {
     return new Response(JSON.stringify({ error: "Invalid year" }), {
@@ -13,6 +16,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   const clubFilter = club ? `AND c.club_key = ?` : "";
+  const attendanceFilter = includeVisitors
+    ? ""
+    : "AND COUNT(pg.game_id) >= MAX(tpg.possible_games) * 0.25";
 
   const sql = `
     WITH player_games AS (
@@ -41,6 +47,20 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       JOIN clubs c ON c.club_id = g.club_id
       WHERE substr(g.session_date, 1, 4) = ?
         ${clubFilter}
+    ),
+    club_possible_games AS (
+      SELECT
+        c.club_key,
+        COUNT(DISTINCT g.session_date) * 3 AS possible_games
+      FROM games g
+      JOIN clubs c ON c.club_id = g.club_id
+      WHERE substr(g.session_date, 1, 4) = ?
+        ${clubFilter}
+      GROUP BY c.club_key
+    ),
+    total_possible_games AS (
+      SELECT COALESCE(SUM(possible_games), 0) AS possible_games
+      FROM club_possible_games
     )
     SELECT
       p.player_id AS id,
@@ -54,9 +74,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       COALESCE(SUM(pg.points_for - pg.points_against), 0) AS spread
     FROM players p
     JOIN player_games pg ON pg.player_id = p.player_id
+    CROSS JOIN total_possible_games tpg
     WHERE p.is_placeholder_visitor = 0
     GROUP BY p.player_id, p.display_name
-    HAVING games > 0
+    HAVING COUNT(pg.game_id) > 0
+      ${attendanceFilter}
     ORDER BY
       CAST(wins AS REAL) / NULLIF(games, 0) DESC,
       games DESC,
@@ -67,8 +89,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   try {
     const stmt = club
-      ? env.DB.prepare(sql).bind(String(year), club, String(year), club)
-      : env.DB.prepare(sql).bind(String(year), String(year));
+      ? env.DB.prepare(sql).bind(String(year), club, String(year), club, String(year), club)
+      : env.DB.prepare(sql).bind(String(year), String(year), String(year));
 
     const { results } = await stmt.all();
 
