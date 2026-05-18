@@ -52,14 +52,14 @@ try {
     Require-File (Join-Path $RepoDir "generate_load_sql.py") "generate_load_sql.py"
     Require-File (Join-Path $RepoDir "wrangler.toml") "wrangler.toml"
 
-    Write-Host "📦 Building game payload..."
+    Write-Host "Building game payload..."
     Write-Host "  DAY: $DayCsv"
     Write-Host "  NM:  $NmCsv"
     Write-Host "  Out: $Payload"
     python make_import_payload.py --club "DAY=$DayCsv" --club "NM=$NmCsv" --out "$Payload"
     Stop-IfFailed "make_import_payload.py"
 
-    Write-Host "⭐ Refreshing external ratings..."
+    Write-Host "Refreshing external ratings..."
     Write-Host "  Out: $RatingsPayload"
     python ratings_refresh.py --external-ids "player_external_ids.csv" --players-json "$Payload" --out "$RatingsPayload"
     if ($LASTEXITCODE -ne 0) {
@@ -67,7 +67,7 @@ try {
         '{"ratings":[],"warnings":["ratings_refresh.py failed during reset_and_reload.ps1; game stats load continued"]}' | Set-Content -LiteralPath $RatingsPayload -Encoding UTF8
     }
 
-    Write-Host "🧾 Generating SQL..."
+    Write-Host "Generating SQL..."
     Write-Host "  In:  $Payload"
     Write-Host "  Ratings: $RatingsPayload"
     Write-Host "  Out: $LoadSql"
@@ -78,22 +78,27 @@ try {
     wrangler whoami
     Stop-IfFailed "Wrangler login check"
 
-    Write-Host "🧹 Resetting + loading DB..."
+    Write-Host "Resetting + loading DB..."
     Write-Host "Ensuring player_ratings table exists..."
-    wrangler d1 execute tcscrabble-db --remote --command "CREATE TABLE IF NOT EXISTS player_ratings (player_id INTEGER PRIMARY KEY, naspa_rating INTEGER, wgpo_rating INTEGER, wgpo_wow_rating INTEGER, cross_tables_rating INTEGER, naspa_url TEXT, wgpo_url TEXT, cross_tables_url TEXT, rating_source_notes TEXT, ratings_updated_at TEXT NOT NULL, FOREIGN KEY (player_id) REFERENCES players(player_id));"
+    $CreateRatingsSql = 'CREATE TABLE IF NOT EXISTS player_ratings (player_id INTEGER PRIMARY KEY, naspa_rating INTEGER, wgpo_rating INTEGER, wgpo_wow_rating INTEGER, cross_tables_rating INTEGER, naspa_url TEXT, wgpo_url TEXT, cross_tables_url TEXT, rating_source_notes TEXT, ratings_updated_at TEXT NOT NULL, FOREIGN KEY (player_id) REFERENCES players(player_id));'
+    wrangler d1 execute tcscrabble-db --remote --command $CreateRatingsSql
     Stop-IfFailed "Ensuring player_ratings table"
 
     Write-Host "Resetting D1 tables in foreign-key-safe order..."
-    wrangler d1 execute tcscrabble-db --remote --command "DELETE FROM games;"
+    $DeleteGamesSql = 'DELETE FROM games;'
+    wrangler d1 execute tcscrabble-db --remote --command $DeleteGamesSql
     Stop-IfFailed "Deleting games"
 
-    wrangler d1 execute tcscrabble-db --remote --command "DELETE FROM player_ratings;"
+    $DeleteRatingsSql = 'DELETE FROM player_ratings;'
+    wrangler d1 execute tcscrabble-db --remote --command $DeleteRatingsSql
     Stop-IfFailed "Deleting player_ratings"
 
-    wrangler d1 execute tcscrabble-db --remote --command "DELETE FROM players;"
+    $DeletePlayersSql = 'DELETE FROM players;'
+    wrangler d1 execute tcscrabble-db --remote --command $DeletePlayersSql
     Stop-IfFailed "Deleting players"
 
-    wrangler d1 execute tcscrabble-db --remote --command "DELETE FROM clubs;"
+    $DeleteClubsSql = 'DELETE FROM clubs;'
+    wrangler d1 execute tcscrabble-db --remote --command $DeleteClubsSql
     Stop-IfFailed "Deleting clubs"
 
     Write-Host "Loading generated SQL into D1..."
