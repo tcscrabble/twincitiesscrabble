@@ -524,41 +524,42 @@ async function loadPlayer(playerId, year, club) {
   document.getElementById("player-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });}
   function number(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString():"0";}
   function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+  function firstDefined(...values){return values.find(value=>value!==null&&value!==undefined&&String(value).trim()!=="");}
   function ratingValue(value){if(value===null||value===undefined||String(value).trim()==="")return null;const n=Number(value);return Number.isFinite(n)?n:null;}
   function profileUrl(value){const url=String(value??"").trim();return /^https?:\/\//i.test(url)?url:null;}
   function renderRatingPill(label,value,url=null){
-    const rating = number(value);
+    const rating = value === null ? "Not found" : number(value);
     const content = url
       ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${rating}</a>`
       : rating;
     return `<div class="rating-pill"><span>${escapeHtml(label)}</span><strong>${content}</strong></div>`;
   }
   function renderRatings(player){
-    const naspaRating = ratingValue(player.naspa_rating);
-    const wgpoNwlRating = ratingValue(player.wgpo_nwl_rating);
-    const wgpoWowRating = ratingValue(player.wgpo_wow_rating);
-    const wgpoUrl = profileUrl(player.wgpo_url);
-    const crossTablesUrl = profileUrl(player.cross_tables_url);
-    const ratingNotes = String(player.rating_notes ?? "").trim();
+    const naspaRating = ratingValue(firstDefined(player.naspaRating, player.naspa_rating));
+    const wgpoNwlRating = ratingValue(firstDefined(player.wgpoRating, player.wgpo_nwl_rating));
+    const wgpoWowRating = ratingValue(firstDefined(player.wgpoWowRating, player.wgpo_wow_rating));
+    const crossTablesRating = ratingValue(player.crossTablesRating);
+    const naspaUrl = profileUrl(player.naspaUrl);
+    const wgpoUrl = profileUrl(firstDefined(player.wgpoUrl, player.wgpo_url));
+    const crossTablesUrl = profileUrl(firstDefined(player.crossTablesUrl, player.cross_tables_url));
+    const ratingNotes = String(firstDefined(player.ratingSourceNotes, player.rating_notes) ?? "").trim();
+    const ratingsUpdatedAt = String(player.ratingsUpdatedAt ?? "").trim();
     const items = [];
 
-    if (naspaRating !== null) {
-      items.push(renderRatingPill("NASPA/NWL Rating", naspaRating));
-    }
-    if (wgpoNwlRating !== null && wgpoNwlRating !== naspaRating) {
-      items.push(renderRatingPill("WGPO NWL Rating", wgpoNwlRating, wgpoUrl));
-    }
-    if (wgpoWowRating !== null) {
-      items.push(renderRatingPill("WGPO WOW Rating", wgpoWowRating, wgpoUrl));
-    }
+    items.push(renderRatingPill("NASPA/NWL Rating", naspaRating, naspaUrl));
+    items.push(renderRatingPill("WGPO NWL Rating", wgpoNwlRating, wgpoUrl));
+    items.push(renderRatingPill("WGPO WOW Rating", wgpoWowRating, wgpoUrl));
+    items.push(renderRatingPill("Cross-Tables Rating", crossTablesRating, crossTablesUrl));
     if (crossTablesUrl) {
       items.push(`<div class="rating-profile"><a href="${escapeHtml(crossTablesUrl)}" target="_blank" rel="noopener noreferrer">Cross-Tables profile</a></div>`);
     }
     if (ratingNotes) {
       items.push(`<div class="rating-note"><b>Rating note:</b> ${escapeHtml(ratingNotes)}</div>`);
     }
+    if (ratingsUpdatedAt) {
+      items.push(`<div class="rating-note"><b>Ratings updated:</b> ${escapeHtml(ratingsUpdatedAt)}</div>`);
+    }
 
-    if (!items.length) return "";
     return `<div class="player-ratings" aria-label="External ratings">${items.join("")}</div>`;
   }
   const directorEmailUser = "dustydame";

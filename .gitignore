@@ -211,6 +211,8 @@ __marimo__/
 !player_ratings.csv
 combined_payload.json
 combined_load.sql
+ratings_payload.json
+ratings_warnings.txt
 import_payload.json
 load.sql
 day_payload.json

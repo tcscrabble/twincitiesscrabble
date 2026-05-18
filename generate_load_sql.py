@@ -1,4 +1,4 @@
-import json, hashlib, re, sys
+import argparse, json, hashlib, re, sys
 from pathlib import Path
 
 def norm_name(name: str) -> str:
@@ -56,6 +56,68 @@ def sql_player_rating_value(field: str, value) -> str:
         return sql_nullable_int(value)
     return sql_nullable_text(value)
 
+RATING_PAYLOAD_INTEGER_FIELDS = {
+    "naspa_rating",
+    "wgpo_rating",
+    "wgpo_wow_rating",
+    "cross_tables_rating",
+}
+
+RATING_PAYLOAD_TEXT_FIELDS = {
+    "naspa_url",
+    "wgpo_url",
+    "cross_tables_url",
+    "rating_source_notes",
+    "ratings_updated_at",
+}
+
+def rating_payload_value(field: str, value) -> str:
+    if field in RATING_PAYLOAD_INTEGER_FIELDS:
+        return sql_nullable_int(value)
+    if field in RATING_PAYLOAD_TEXT_FIELDS:
+        return sql_nullable_text(value)
+    return "NULL"
+
+def player_rating_upsert_sql(rating: dict) -> str | None:
+    display_name = norm_name(str(rating.get("display_name") or ""))
+    if not display_name:
+        return None
+    key = player_key(display_name)
+
+    fields = [
+        "naspa_rating",
+        "wgpo_rating",
+        "wgpo_wow_rating",
+        "cross_tables_rating",
+        "naspa_url",
+        "wgpo_url",
+        "cross_tables_url",
+        "rating_source_notes",
+        "ratings_updated_at",
+    ]
+    values = ",\n  ".join(rating_payload_value(field, rating.get(field)) for field in fields)
+    assignments = ",\n  ".join(f"{field} = excluded.{field}" for field in fields)
+
+    return f"""INSERT INTO player_ratings (
+  player_id,
+  naspa_rating,
+  wgpo_rating,
+  wgpo_wow_rating,
+  cross_tables_rating,
+  naspa_url,
+  wgpo_url,
+  cross_tables_url,
+  rating_source_notes,
+  ratings_updated_at
+)
+SELECT
+  p.player_id,
+  {values}
+FROM players p
+WHERE p.player_key = {sql_quote(key)}
+ON CONFLICT(player_id) DO UPDATE SET
+  {assignments};"""
+
 def normalize_player_metadata(player: dict) -> dict | None:
     display_name = norm_name(str(player.get("display_name") or ""))
     if not display_name:
@@ -105,17 +167,22 @@ def record_hash(rec: dict) -> str:
     return hashlib.sha1(blob).hexdigest()
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python generate_load_sql.py input.json output.sql")
-        sys.exit(2)
+    parser = argparse.ArgumentParser(description="Generate D1 load SQL for Twin Cities Scrabble.")
+    parser.add_argument("input_json", type=Path)
+    parser.add_argument("output_sql", type=Path)
+    parser.add_argument("--ratings", type=Path, help="Optional ratings_payload.json from ratings_refresh.py")
+    args = parser.parse_args()
 
-    in_path = Path(sys.argv[1])
-    out_path = Path(sys.argv[2])
+    in_path = args.input_json
+    out_path = args.output_sql
 
     data = json.loads(in_path.read_text(encoding="utf-8"))
     games = data.get("games", [])
     player_payload = data.get("players", [])
     wipe = bool(data.get("wipe", False))
+    ratings_payload = {"ratings": []}
+    if args.ratings and args.ratings.exists():
+        ratings_payload = json.loads(args.ratings.read_text(encoding="utf-8"))
 
     lines = []
     lines.append("PRAGMA foreign_keys = ON;")
@@ -123,6 +190,7 @@ def main():
 
     if wipe:
         lines.append("DELETE FROM games;")
+        lines.append("DELETE FROM player_ratings;")
         lines.append("DELETE FROM players;")
         lines.append("DELETE FROM clubs;")
 
@@ -139,6 +207,11 @@ def main():
                 metadata,
             )
         )
+
+    for rating in ratings_payload.get("ratings", []):
+        sql = player_rating_upsert_sql(rating)
+        if sql:
+            lines.append(sql)
 
     # Ensure clubs/players exist, then insert games
     for g in games:

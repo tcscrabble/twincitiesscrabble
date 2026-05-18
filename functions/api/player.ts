@@ -30,16 +30,27 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
     player = await env.DB.prepare(
       `
       SELECT
-        player_id AS id,
-        display_name AS name,
-        naspa_rating,
-        wgpo_nwl_rating,
-        wgpo_wow_rating,
-        wgpo_url,
-        cross_tables_url,
-        rating_notes
-      FROM players
-      WHERE player_id = ?
+        p.player_id AS id,
+        p.display_name AS name,
+        COALESCE(r.naspa_rating, p.naspa_rating) AS naspaRating,
+        COALESCE(r.wgpo_rating, p.wgpo_nwl_rating) AS wgpoRating,
+        COALESCE(r.wgpo_wow_rating, p.wgpo_wow_rating) AS wgpoWowRating,
+        r.cross_tables_rating AS crossTablesRating,
+        r.naspa_url AS naspaUrl,
+        COALESCE(r.wgpo_url, p.wgpo_url) AS wgpoUrl,
+        COALESCE(r.cross_tables_url, p.cross_tables_url) AS crossTablesUrl,
+        COALESCE(r.rating_source_notes, p.rating_notes) AS ratingSourceNotes,
+        r.ratings_updated_at AS ratingsUpdatedAt,
+        COALESCE(r.naspa_rating, p.naspa_rating) AS naspa_rating,
+        COALESCE(r.wgpo_rating, p.wgpo_nwl_rating) AS wgpo_nwl_rating,
+        COALESCE(r.wgpo_wow_rating, p.wgpo_wow_rating) AS wgpo_wow_rating,
+        COALESCE(r.wgpo_url, p.wgpo_url) AS wgpo_url,
+        COALESCE(r.cross_tables_url, p.cross_tables_url) AS cross_tables_url,
+        COALESCE(r.rating_source_notes, p.rating_notes) AS rating_notes
+      FROM players p
+      LEFT JOIN player_ratings r
+        ON r.player_id = p.player_id
+      WHERE p.player_id = ?
       `
     )
       .bind(playerId)
