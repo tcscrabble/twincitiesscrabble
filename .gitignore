@@ -209,10 +209,15 @@ __marimo__/
 # Twin Cities Scrabble raw/generated import data
 *.csv
 !player_ratings.csv
+!player_external_ids.csv
 combined_payload.json
 combined_load.sql
 ratings_payload.json
 ratings_warnings.txt
+cross_tables_highlights.json
+cross_tables_highlights.txt
+cross_tables_highlights_warnings.txt
+cross_tables_highlights_email.eml
 import_payload.json
 load.sql
 day_payload.json

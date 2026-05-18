@@ -7,6 +7,9 @@ $DayCsv = Join-Path $DataDir "Daytime Scrabble 2026 - May 7.csv"
 $NmCsv = Join-Path $DataDir "North Metro Scrabble 2026 - May 7.csv"
 $Payload = Join-Path $DataDir "combined_payload.json"
 $RatingsPayload = Join-Path $DataDir "ratings_payload.json"
+$CrossTablesHighlights = Join-Path $DataDir "cross_tables_highlights.json"
+$CrossTablesReport = Join-Path $DataDir "cross_tables_highlights.txt"
+$CrossTablesWarnings = Join-Path $DataDir "cross_tables_highlights_warnings.txt"
 $LoadSql = Join-Path $DataDir "combined_load.sql"
 
 function Stop-WithMessage {
@@ -48,6 +51,7 @@ Push-Location $RepoDir
 try {
     Require-File (Join-Path $RepoDir "make_import_payload.py") "make_import_payload.py"
     Require-File (Join-Path $RepoDir "ratings_refresh.py") "ratings_refresh.py"
+    Require-File (Join-Path $RepoDir "scan_cross_tables_highlights.py") "scan_cross_tables_highlights.py"
     Require-File (Join-Path $RepoDir "player_external_ids.csv") "player_external_ids.csv"
     Require-File (Join-Path $RepoDir "generate_load_sql.py") "generate_load_sql.py"
     Require-File (Join-Path $RepoDir "wrangler.toml") "wrangler.toml"
@@ -65,6 +69,20 @@ try {
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "ratings_refresh.py failed. Continuing with an empty ratings payload so game stats can still load."
         '{"ratings":[],"warnings":["ratings_refresh.py failed during reset_and_reload.ps1; game stats load continued"]}' | Set-Content -LiteralPath $RatingsPayload -Encoding UTF8
+    }
+
+    Write-Host "Scanning Cross-tables highlights..."
+    Write-Host "  Out: $CrossTablesHighlights"
+    Write-Host "  Report: $CrossTablesReport"
+    python scan_cross_tables_highlights.py --players-json "$Payload" --external-ids "player_external_ids.csv" --out "$CrossTablesHighlights" --report "$CrossTablesReport" --warnings "$CrossTablesWarnings" --email-to "lande_hall@yahoo.com" --email-to "dustydame@gmail.com"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "scan_cross_tables_highlights.py failed. Continuing so game stats can still load."
+        '{"scanned_at":"","tournaments_scanned":[],"highlights":[],"warnings":["scan_cross_tables_highlights.py failed during reset_and_reload.ps1; game stats load continued"]}' | Set-Content -LiteralPath $CrossTablesHighlights -Encoding UTF8
+        'scan_cross_tables_highlights.py failed during reset_and_reload.ps1; game stats load continued' | Set-Content -LiteralPath $CrossTablesWarnings -Encoding UTF8
+        'Cross-tables highlight scan failed; game stats load continued.' | Set-Content -LiteralPath $CrossTablesReport -Encoding UTF8
+    }
+    elseif ((Test-Path -LiteralPath $CrossTablesWarnings -PathType Leaf) -and ((Get-Content -LiteralPath $CrossTablesWarnings -Raw).Trim().Length -gt 0)) {
+        Write-Warning "Cross-tables highlight scan completed with warnings. See $CrossTablesWarnings"
     }
 
     Write-Host "Generating SQL..."
