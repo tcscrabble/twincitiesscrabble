@@ -555,8 +555,9 @@ async function loadPlayer(playerId, year, club) {
     const items = [];
 
     items.push(renderRatingPill("NASPA/NWL Rating", naspaRating, naspaUrl));
-    items.push(renderRatingPill("WGPO NWL Rating", wgpoNwlRating, wgpoUrl));
-    items.push(renderRatingPill("WGPO WOW Rating", wgpoWowRating, wgpoUrl));
+    items.push(renderRatingPill("WGPO NWL Rating", wgpoNwlRating));
+    items.push(renderRatingPill("WGPO WOW Rating", wgpoWowRating));
+    items.push(renderProfilePill("WGPO Profile", wgpoUrl));
     items.push(renderProfilePill("Cross-Tables Profile", crossTablesUrl));
     if (ratingNotes) {
       items.push(`<div class="rating-note"><b>Rating note:</b> ${escapeHtml(ratingNotes)}</div>`);
