@@ -459,7 +459,7 @@ async function loadPlayer(playerId, year, club) {
     ${number(s.wins)} wins ·
     ${number(s.losses)} losses ·
     ${number(s.ties)} ties ·
-    ${number(s.total_spread)} spread
+    ${signedNumber(s.avg_spread)} avg spread
   </p>
   ${ratingsHtml}
   
@@ -526,6 +526,7 @@ async function loadPlayer(playerId, year, club) {
     
   document.getElementById("player-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });}
   function number(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString():"0";}
+  function signedNumber(value){const n=Math.round(Number(value));if(!Number.isFinite(n))return "0";return n>0?`+${n.toLocaleString()}`:n.toLocaleString();}
   function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
   function firstDefined(...values){return values.find(value=>value!==null&&value!==undefined&&String(value).trim()!=="");}
   function ratingValue(value){if(value===null||value===undefined||String(value).trim()==="")return null;const n=Number(value);return Number.isFinite(n)?n:null;}
