@@ -287,9 +287,9 @@
           <th>Losses</th>
           <th>Ties</th>
           <th>Win %</th>
-          <th>Spread</th>
           <th>Avg</th>
           <th>Opp Avg</th>
+          <th>Avg Spread</th>
         </tr></thead>
       <tbody id="leaderboard-body">
         <tr>
@@ -404,9 +404,9 @@ async function loadLeaderboard(){const club=document.getElementById("clubSelect"
 <td>${number(r.losses)}</td>
 <td>${number(r.ties)}</td>
 <td>${number(r.win_pct)}%</td>
-<td>${number(r.spread)}</td>
 <td>${number(r.avg_score)}</td>
 <td>${number(r.opp_avg)}</td>
+<td>${signedNumber(r.avg_spread)}</td>
 </tr>`).join("");}catch(error){body.innerHTML=`<tr>
 <td colspan="10">Could not load standings. ${escapeHtml(error.message)}</td></tr>`;}}
 document.addEventListener("click", event => {

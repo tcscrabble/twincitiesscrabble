@@ -71,6 +71,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       COALESCE(SUM(CASE WHEN pg.points_for = pg.points_against THEN 1 ELSE 0 END), 0) AS ties,
       ROUND(AVG(points_for), 0) AS avg_score,
       ROUND(AVG(points_against), 0) AS opp_avg,
+      ROUND(AVG(pg.points_for - pg.points_against), 0) AS avg_spread,
       COALESCE(SUM(pg.points_for - pg.points_against), 0) AS spread
     FROM players p
     JOIN player_games pg ON pg.player_id = p.player_id
@@ -81,8 +82,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       ${attendanceFilter}
     ORDER BY
       CAST(wins AS REAL) / NULLIF(games, 0) DESC,
+      avg_spread DESC,
       games DESC,
-      spread DESC,
       avg_score DESC,
       name ASC;
   `;
