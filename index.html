@@ -537,11 +537,16 @@ async function loadPlayer(playerId, year, club) {
       : rating;
     return `<div class="rating-pill"><span>${escapeHtml(label)}</span><strong>${content}</strong></div>`;
   }
+  function renderProfilePill(label,url){
+    const content = url
+      ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Player Profile</a>`
+      : "Not available";
+    return `<div class="rating-pill"><span>${escapeHtml(label)}</span><strong>${content}</strong></div>`;
+  }
   function renderRatings(player){
     const naspaRating = ratingValue(firstDefined(player.naspaRating, player.naspa_rating));
     const wgpoNwlRating = ratingValue(firstDefined(player.wgpoRating, player.wgpo_nwl_rating));
     const wgpoWowRating = ratingValue(firstDefined(player.wgpoWowRating, player.wgpo_wow_rating));
-    const crossTablesRating = ratingValue(player.crossTablesRating);
     const naspaUrl = profileUrl(player.naspaUrl);
     const wgpoUrl = profileUrl(firstDefined(player.wgpoUrl, player.wgpo_url));
     const crossTablesUrl = profileUrl(firstDefined(player.crossTablesUrl, player.cross_tables_url));
@@ -552,10 +557,7 @@ async function loadPlayer(playerId, year, club) {
     items.push(renderRatingPill("NASPA/NWL Rating", naspaRating, naspaUrl));
     items.push(renderRatingPill("WGPO NWL Rating", wgpoNwlRating, wgpoUrl));
     items.push(renderRatingPill("WGPO WOW Rating", wgpoWowRating, wgpoUrl));
-    items.push(renderRatingPill("Cross-Tables Rating", crossTablesRating, crossTablesUrl));
-    if (crossTablesUrl) {
-      items.push(`<div class="rating-profile"><a href="${escapeHtml(crossTablesUrl)}" target="_blank" rel="noopener noreferrer">Cross-Tables profile</a></div>`);
-    }
+    items.push(renderProfilePill("Cross-Tables Profile", crossTablesUrl));
     if (ratingNotes) {
       items.push(`<div class="rating-note"><b>Rating note:</b> ${escapeHtml(ratingNotes)}</div>`);
     }
