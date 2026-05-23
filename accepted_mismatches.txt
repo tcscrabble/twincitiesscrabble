@@ -1,0 +1,9 @@
+# One accepted mismatch key per line
+# Lines beginning with # are comments
+SCORE_MISMATCH|DAY|2026-02-09|Bill Bigler|Diane Weinerman|324|406
+SCORE_MISMATCH|DAY|2026-02-09|Bill Bigler|Diane Weinerman|324|408
+SCORE_MISMATCH|DAY|2026-03-02|Diane Weinerman|Pete Bogle|266|399
+SCORE_MISMATCH|DAY|2026-03-02|Diane Weinerman|Pete Bogle|256|399
+SCORE_MISMATCH|DAY|2026-03-02|Diane Weinerman|Linda Stratton|348|450
+SCORE_MISMATCH|DAY|2026-03-02|Diane Weinerman|Linda Stratton|342|450
+

@@ -11,6 +11,7 @@ $CrossTablesHighlights = Join-Path $DataDir "cross_tables_highlights.json"
 $CrossTablesReport = Join-Path $DataDir "cross_tables_highlights.txt"
 $CrossTablesWarnings = Join-Path $DataDir "cross_tables_highlights_warnings.txt"
 $LoadSql = Join-Path $DataDir "combined_load.sql"
+$AcceptedMismatches = Join-Path $RepoDir "accepted_mismatches.txt"
 
 function Stop-WithMessage {
     param([string]$Message)
@@ -54,13 +55,15 @@ try {
     Require-File (Join-Path $RepoDir "scan_cross_tables_highlights.py") "scan_cross_tables_highlights.py"
     Require-File (Join-Path $RepoDir "player_external_ids.csv") "player_external_ids.csv"
     Require-File (Join-Path $RepoDir "generate_load_sql.py") "generate_load_sql.py"
+    Require-File $AcceptedMismatches "accepted_mismatches.txt"
     Require-File (Join-Path $RepoDir "wrangler.toml") "wrangler.toml"
 
     Write-Host "Building game payload..."
     Write-Host "  DAY: $DayCsv"
     Write-Host "  NM:  $NmCsv"
     Write-Host "  Out: $Payload"
-    python make_import_payload.py --club "DAY=$DayCsv" --club "NM=$NmCsv" --out "$Payload"
+    Write-Host "  Accepted mismatches: $AcceptedMismatches"
+    python make_import_payload.py --club "DAY=$DayCsv" --club "NM=$NmCsv" --accepted-mismatches "$AcceptedMismatches" --out "$Payload"
     Stop-IfFailed "make_import_payload.py"
 
     Write-Host "Refreshing external ratings..."

@@ -174,7 +174,9 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
           ELSE p.is_placeholder_visitor
         END AS opponent_is_placeholder_visitor,
       
-        g.visitor_note
+        g.visitor_note,
+        g.verification_status,
+        g.mismatch_type
       
         FROM games g
         JOIN clubs c

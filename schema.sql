@@ -40,6 +40,12 @@ CREATE TABLE player_ratings (
   FOREIGN KEY (player_id) REFERENCES players(player_id)
 );
 
+CREATE TABLE IF NOT EXISTS accepted_mismatches (
+  mismatch_key TEXT PRIMARY KEY,
+  accepted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note TEXT
+);
+
 CREATE TABLE games (
   game_id INTEGER PRIMARY KEY AUTOINCREMENT,
   session_date TEXT NOT NULL,
@@ -52,6 +58,11 @@ CREATE TABLE games (
   spread INTEGER NOT NULL,
   result TEXT NOT NULL,
   visitor_note TEXT,
+  verification_status TEXT NOT NULL DEFAULT 'VERIFIED' CHECK (
+    verification_status IN ('VERIFIED', 'ACCEPTED_MISMATCH', 'UNRESOLVED_MISMATCH', 'UNMATCHED')
+  ),
+  mismatch_key TEXT,
+  mismatch_type TEXT,
   raw_hash TEXT NOT NULL UNIQUE,
   FOREIGN KEY (club_id) REFERENCES clubs(club_id),
   FOREIGN KEY (player_id) REFERENCES players(player_id),

@@ -78,6 +78,13 @@ def rating_payload_value(field: str, value) -> str:
         return sql_nullable_text(value)
     return "NULL"
 
+GAME_VERIFICATION_STATUSES = {
+    "VERIFIED",
+    "ACCEPTED_MISMATCH",
+    "UNRESOLVED_MISMATCH",
+    "UNMATCHED",
+}
+
 def player_rating_upsert_sql(rating: dict) -> str | None:
     display_name = norm_name(str(rating.get("display_name") or ""))
     if not display_name:
@@ -227,12 +234,20 @@ def main():
         rnd = g.get("round_number")
         p_name = norm_name(str(g["player_name"]))
         o_name = norm_name(str(g["opponent_name"]))
-        p_score = int(g["player_score"])
-        o_score = int(g["opponent_score"])
+        try:
+            p_score = int(g["player_score"])
+            o_score = int(g["opponent_score"])
+        except (TypeError, ValueError):
+            continue
 
         p_is_placeholder = int(g.get("player_is_placeholder_visitor", 0) or 0)
         o_is_placeholder = int(g.get("opponent_is_placeholder_visitor", 0) or 0)
         visitor_note = g.get("visitor_note")
+        verification_status = norm_name(str(g.get("verification_status") or "VERIFIED")).upper()
+        if verification_status not in GAME_VERIFICATION_STATUSES:
+            verification_status = "VERIFIED"
+        mismatch_key = g.get("mismatch_key")
+        mismatch_type = g.get("mismatch_type")
 
         spread = p_score - o_score
         result = "W" if spread > 0 else ("L" if spread < 0 else "T")
@@ -269,18 +284,25 @@ def main():
         lines.append(player_upsert_sql(o_name, o_is_placeholder, o_metadata))
         # Insert game (idempotent by raw_hash)
         # Note: we resolve ids via subqueries (fine for D1/SQLite; slower but simple).
-        round_sql = "NULL" if rnd in (None, "") else str(int(rnd))
+        try:
+            round_sql = "NULL" if rnd in (None, "") else str(int(rnd))
+        except (TypeError, ValueError):
+            round_sql = "NULL"
         visitor_note_sql = "NULL" if visitor_note in (None, "") else sql_quote(str(visitor_note))
+        mismatch_key_sql = sql_nullable_text(mismatch_key)
+        mismatch_type_sql = sql_nullable_text(mismatch_type)
 
         lines.append(
             "INSERT INTO games (session_date, club_id, round_number, player_id, opponent_id, "
-            "player_score, opponent_score, spread, result, raw_hash, visitor_note) VALUES ("
+            "player_score, opponent_score, spread, result, raw_hash, visitor_note, "
+            "verification_status, mismatch_key, mismatch_type) VALUES ("
             f"{sql_quote(session_date)}, "
             f"(SELECT club_id FROM clubs WHERE club_key={sql_quote(club_key)}), "
             f"{round_sql}, "
             f"(SELECT player_id FROM players WHERE player_key={sql_quote(p_key)}), "
             f"(SELECT player_id FROM players WHERE player_key={sql_quote(o_key)}), "
-            f"{p_score}, {o_score}, {spread}, {sql_quote(result)}, {sql_quote(raw_hash)}, {visitor_note_sql}"
+            f"{p_score}, {o_score}, {spread}, {sql_quote(result)}, {sql_quote(raw_hash)}, {visitor_note_sql}, "
+            f"{sql_quote(verification_status)}, {mismatch_key_sql}, {mismatch_type_sql}"
             ") "
             "ON CONFLICT(raw_hash) DO NOTHING;"
         )

@@ -98,6 +98,56 @@ def parse_int(s: str):
     except ValueError:
         return None
 
+def read_accepted_mismatches(path: Optional[str]) -> Set[str]:
+    if not path:
+        return set()
+
+    accepted_path = Path(path)
+    if not accepted_path.exists():
+        print(f"[WARN] accepted mismatches file not found: {accepted_path}")
+        return set()
+
+    keys: Set[str] = set()
+    for line in accepted_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        keys.add(line)
+    return keys
+
+def make_mismatch_key(issue_type: str, game: Dict[str, Any]) -> str:
+    location = _norm(str(game.get("location") or "")).upper()
+    session_date = _norm(str(game.get("session_date") or ""))
+    player_name = _norm(str(game.get("player_name") or ""))
+    opponent_name = _norm(str(game.get("opponent_name") or ""))
+    player_score = str(game.get("player_score") if game.get("player_score") is not None else "")
+    opponent_score = str(game.get("opponent_score") if game.get("opponent_score") is not None else "")
+
+    players = sorted(
+        [(player_name, player_score), (opponent_name, opponent_score)],
+        key=lambda item: _norm(item[0]).upper(),
+    )
+
+    return "|".join([
+        _norm(str(issue_type or "")).upper(),
+        location,
+        session_date,
+        players[0][0],
+        players[1][0],
+        players[0][1],
+        players[1][1],
+    ])
+
+def set_game_verification(
+    game: Dict[str, Any],
+    verification_status: str = "VERIFIED",
+    mismatch_key: Optional[str] = None,
+    mismatch_type: Optional[str] = None,
+) -> None:
+    game["verification_status"] = verification_status
+    game["mismatch_key"] = mismatch_key
+    game["mismatch_type"] = mismatch_type
+
 def make_short_name(full_name: str) -> Optional[str]:
     # "Peter Haugan" -> "Peter H"
     parts = [p for p in full_name.strip().split() if p]
@@ -799,8 +849,9 @@ def build_games_from_csv(
     return games, warnings, full_names, collisions
 
 
-def validate_and_filter_games(games: List[Dict[str, Any]]):
+def validate_and_filter_games(games: List[Dict[str, Any]], accepted_mismatch_keys: Optional[Set[str]] = None):
     from collections import defaultdict
+    accepted_mismatch_keys = accepted_mismatch_keys or set()
 
     def norm_name_for_match(name: str) -> str:
         return _norm(name).upper()
@@ -909,6 +960,8 @@ def validate_and_filter_games(games: List[Dict[str, Any]]):
 
     clean_games = []
     issues = []
+    leftover_groups = []
+    verified_matches_by_reporter = defaultdict(list)
 
     for key, rows in pair_groups.items():
         # Pre-2026 rows: keep without validating.
@@ -935,11 +988,21 @@ def validate_and_filter_games(games: List[Dict[str, Any]]):
                 clean_games.append(a_rows[i])
                 used_ids.add(id(a_rows[i]))
                 used_ids.add(id(b_rows[i]))
+                verified_match = {
+                    "players": {a_norm, b_norm},
+                    "rows": [a_rows[i], b_rows[i]],
+                    "kept_game": a_rows[i],
+                }
+                verified_matches_by_reporter[(session_date, location, a_norm)].append(verified_match)
+                verified_matches_by_reporter[(session_date, location, b_norm)].append(verified_match)
 
         leftover = [g for g in rows if id(g) not in used_ids]
 
-        if not leftover:
-            continue
+        if leftover:
+            leftover_groups.append((key, rows, leftover))
+
+    for key, rows, leftover in leftover_groups:
+        session_date, location, a_norm, b_norm = key
 
         reporters = {reporter_for_match(g) for g in rows}
 
@@ -971,6 +1034,29 @@ def validate_and_filter_games(games: List[Dict[str, Any]]):
                     "candidates": candidates,
                 })
             else:
+                reporter = reporter_for_match(g)
+                opponent = norm_name_for_match(g["opponent_name"])
+                conflict_matches = [
+                    match for match in verified_matches_by_reporter[(session_date, location, opponent)]
+                    if reporter not in match["players"]
+                ]
+
+                if conflict_matches:
+                    conflict_rows = []
+                    seen_conflict_row_ids = set()
+                    for match in conflict_matches:
+                        for row in match["rows"]:
+                            if id(row) not in seen_conflict_row_ids:
+                                conflict_rows.append(row)
+                                seen_conflict_row_ids.add(id(row))
+
+                    issues.append({
+                        "type": "THREE_WAY_CONFLICT",
+                        "game": g,
+                        "candidates": conflict_rows,
+                    })
+                    continue
+
                 issues.append({
                     "type": "NO_OBVIOUS_MATCH",
                     "game": g,
@@ -987,7 +1073,33 @@ def validate_and_filter_games(games: List[Dict[str, Any]]):
             item["type"] = "POSSIBLE_DATE_MISMATCH"
             item["candidates"] = candidates
 
-    return clean_games, issues
+    for g in clean_games:
+        if not g.get("verification_status"):
+            set_game_verification(g)
+
+    clean_ids = {id(g) for g in clean_games}
+    loadable_games = list(clean_games)
+
+    for item in issues:
+        g = item["game"]
+        issue_type = item["type"]
+        mismatch_key = make_mismatch_key(issue_type, g)
+        item["mismatch_key"] = mismatch_key
+
+        if mismatch_key in accepted_mismatch_keys:
+            status = "ACCEPTED_MISMATCH"
+        elif issue_type == "NO_OBVIOUS_MATCH":
+            status = "UNMATCHED"
+        else:
+            status = "UNRESOLVED_MISMATCH"
+
+        set_game_verification(g, status, mismatch_key, issue_type)
+
+        if id(g) not in clean_ids:
+            loadable_games.append(g)
+            clean_ids.add(id(g))
+
+    return loadable_games, issues
 
 def archive_existing_output(out_file: str) -> None:
     out_path = Path(out_file)
@@ -1045,6 +1157,7 @@ def main():
     ap.add_argument("--skip_rows_before", type=int, default=0, help="Skip first N rows (notes/preamble)")
 
     ap.add_argument("--ratings", default="player_ratings.csv", help="Curated player ratings CSV")
+    ap.add_argument("--accepted-mismatches", default=None, help="Optional text file containing accepted mismatch keys")
     ap.add_argument("--wipe", action="store_true", help="Set wipe:true in output payload")
     ap.add_argument("--out", default="import_payload.json", help="Output JSON file name")
 
@@ -1100,6 +1213,8 @@ def main():
 
     short_to_full, collisions = build_short_to_full(all_full_names)
 
+    accepted_mismatch_keys = read_accepted_mismatches(args.accepted_mismatches)
+
     all_games: List[Dict[str, Any]] = []
 
     for club in clubs:
@@ -1121,7 +1236,7 @@ def main():
         all_games.extend(games)
         all_warnings.extend([f"{club['club']}: {w}" for w in warnings])
 
-    clean_games, unmatched_games = validate_and_filter_games(all_games)
+    clean_games, mismatch_issues = validate_and_filter_games(all_games, accepted_mismatch_keys)
 
     player_names_for_ratings: List[str] = []
     seen_player_names_for_ratings = set()
@@ -1164,67 +1279,114 @@ def main():
     print(f"clubs processed: {', '.join(c['club'] for c in clubs)}")
     print(f"global roster players found: {len(all_full_names)}")
     print(f"raw games parsed: {len(all_games)}")
-    print(f"clean games written: {len(clean_games)}")
+    print(f"games written: {len(clean_games)}")
     print(f"players written: {len(player_payload)}")
     print(f"player rating rows matched: {len(player_ratings)}")
-    print(f"unmatched games skipped: {len(unmatched_games)}")
-
-    if unmatched_games:
-        if multi_club_mode:
-            report_path = out_path.parent / "unmatched_games_report_ALL.txt"
-        else:
-            report_path = out_path.parent / f"unmatched_games_report_{clubs[0]['club']}.txt"
-
-        def write_unmatched_report(path: str, items: List[Dict[str, Any]]) -> None:
-            with open(path, "w", encoding="utf-8") as f:
-                for item in items:
-                    g = item["game"]
-
-                    f.write(
-                        f"{g['session_date']} | {g['location']} | "
-                        f"{g['player_name']} vs {g['opponent_name']} "
-                        f"{g['player_score']}-{g['opponent_score']} | "
-                        f"{item['type']} | source_row={g.get('source_row', 'unknown')}\n"
-                    )
-
-                    if item["type"] in {"SCORE_MISMATCH", "WINNER_DISAGREEMENT"} and item.get("candidates"):
-                        f.write("  Candidate opponent entries:\n")
-                        for og in item["candidates"]:
-                            f.write(
-                                f"    {og['player_name']} vs {og['opponent_name']} "
-                                f"{og['player_score']}-{og['opponent_score']} "
-                                f"(source_row={og.get('source_row', 'unknown')})\n"
-                            )
-                    elif item["type"] == "POSSIBLE_DATE_MISMATCH":
-                        f.write("  Possible reciprocal date-mismatch entries:\n")
-                        for og in item["candidates"]:
-                            f.write(
-                                f"    {og['session_date']} | {og['location']} | "
-                                f"{og['player_name']} vs {og['opponent_name']} "
-                                f"{og['player_score']}-{og['opponent_score']} "
-                                f"(source_row={og.get('source_row', 'unknown')})\n"
-                            )
-
-                    f.write("\n")
-
-        write_unmatched_report(str(report_path), unmatched_games)
-        print(f"⚠️  Wrote unmatched report: {report_path}")
-
-        filtered_report_path = str(
-            Path(report_path).with_name(
-                f"{Path(report_path).stem}_no_score_mismatches{Path(report_path).suffix}"
-            )
+    status_counts = {
+        "VERIFIED": 0,
+        "ACCEPTED_MISMATCH": 0,
+        "UNRESOLVED_MISMATCH": 0,
+        "UNMATCHED": 0,
+    }
+    for g in clean_games:
+        status_counts[g.get("verification_status", "VERIFIED")] = (
+            status_counts.get(g.get("verification_status", "VERIFIED"), 0) + 1
         )
-        non_score_mismatch_games = [
-            item for item in unmatched_games
-            if item["type"] != "SCORE_MISMATCH"
-        ]
 
-        write_unmatched_report(str(filtered_report_path), non_score_mismatch_games)
-        print(f"⚠️  Wrote non-score-mismatch report: {filtered_report_path}")
+    print(f"verified games: {status_counts['VERIFIED']}")
+    print(f"accepted mismatches: {status_counts['ACCEPTED_MISMATCH']}")
+    print(f"new unresolved mismatches: {status_counts['UNRESOLVED_MISMATCH']}")
+    print(f"unmatched games: {status_counts['UNMATCHED']}")
+
+    accepted_issue_items = [
+        item for item in mismatch_issues
+        if item["game"].get("verification_status") == "ACCEPTED_MISMATCH"
+    ]
+    action_required_items = [
+        item for item in mismatch_issues
+        if item["game"].get("verification_status") in {"UNRESOLVED_MISMATCH", "UNMATCHED"}
+    ]
+
+    def write_issue_detail(f, item: Dict[str, Any]) -> None:
+        g = item["game"]
+        f.write(
+            f"mismatch_key: {item.get('mismatch_key', g.get('mismatch_key'))}\n"
+            f"  club: {g['location']}\n"
+            f"  date: {g['session_date']}\n"
+            f"  players: {g['player_name']} vs {g['opponent_name']}\n"
+            f"  score: {g['player_score']}-{g['opponent_score']}\n"
+            f"  mismatch_type: {item['type']}\n"
+            f"  status: {g.get('verification_status')}\n"
+            f"  source_row: {g.get('source_row', 'unknown')}\n"
+        )
+
+        if item["type"] in {"SCORE_MISMATCH", "WINNER_DISAGREEMENT"} and item.get("candidates"):
+            f.write("  Candidate opponent entries:\n")
+            for og in item["candidates"]:
+                f.write(
+                    f"    {og['player_name']} vs {og['opponent_name']} "
+                    f"{og['player_score']}-{og['opponent_score']} "
+                    f"(source_row={og.get('source_row', 'unknown')})\n"
+                )
+        elif item["type"] == "THREE_WAY_CONFLICT":
+            f.write("  Supposed opponent is already in verified match:\n")
+            for og in item.get("candidates", []):
+                f.write(
+                    f"    {og['player_name']} vs {og['opponent_name']} "
+                    f"{og['player_score']}-{og['opponent_score']} "
+                    f"(source_row={og.get('source_row', 'unknown')})\n"
+                )
+        elif item["type"] == "POSSIBLE_DATE_MISMATCH":
+            f.write("  Possible reciprocal date-mismatch entries:\n")
+            for og in item.get("candidates", []):
+                f.write(
+                    f"    {og['session_date']} | {og['location']} | "
+                    f"{og['player_name']} vs {og['opponent_name']} "
+                    f"{og['player_score']}-{og['opponent_score']} "
+                    f"(source_row={og.get('source_row', 'unknown')})\n"
+                )
+        f.write("\n")
+
+    if mismatch_issues or all_warnings:
+        report_path = (
+            out_path.parent / "mismatch_report_ALL.txt"
+            if multi_club_mode
+            else out_path.parent / f"mismatch_report_{clubs[0]['club']}.txt"
+        )
+        with report_path.open("w", encoding="utf-8") as f:
+            f.write("Summary\n")
+            f.write(f"Verified games: {status_counts['VERIFIED']}\n")
+            f.write(f"Accepted mismatches: {status_counts['ACCEPTED_MISMATCH']}\n")
+            f.write(f"New unresolved mismatches: {status_counts['UNRESOLVED_MISMATCH']}\n")
+            f.write(f"Unmatched games: {status_counts['UNMATCHED']}\n\n")
+
+            f.write("New unresolved mismatches\n")
+            if action_required_items:
+                for item in action_required_items:
+                    write_issue_detail(f, item)
+            else:
+                f.write("None\n\n")
+
+            f.write("Accepted mismatches (informational only)\n")
+            if accepted_issue_items:
+                for item in accepted_issue_items:
+                    write_issue_detail(f, item)
+            else:
+                f.write("None\n\n")
+
+            f.write("Warnings\n")
+            if all_warnings:
+                for warning in all_warnings:
+                    f.write(f"- {warning}\n")
+            else:
+                f.write("None\n")
+
+        if action_required_items:
+            print(f"Wrote mismatch report with action-required items: {report_path}")
+        else:
+            print(f"Wrote mismatch report: {report_path}")
 
     print(f"Wrote {out_path}")
-    print(f"games written: {len(clean_games)}")
 
     if collisions:
         print(f"opponent short-name collisions: {len(collisions)} (will not auto-expand those):")
