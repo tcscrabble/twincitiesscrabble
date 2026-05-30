@@ -185,7 +185,7 @@ def _norm(x) -> str:
 
 def is_block_code(s: str) -> bool:
     s = (s or "").strip().upper()
-    return bool(CODE_RE.match(s))
+    return bool(CODE_RE.match(s) or s in {"MASTA"})
 
 def looks_like_name_piece(s: str) -> bool:
     s = (s or "").strip()
