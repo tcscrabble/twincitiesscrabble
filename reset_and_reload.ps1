@@ -3,8 +3,11 @@ $ErrorActionPreference = "Stop"
 $RepoDir = "C:\Users\lande\Documents\GitHub\twincitiesscrabble"
 $DataDir = "C:\Users\lande\Documents\ScrabbleData"
 
-$DayCsv = Join-Path $DataDir "Daytime Scrabble 2026 - May 7.csv"
-$NmCsv = Join-Path $DataDir "North Metro Scrabble 2026 - May 7.csv"
+$SheetGid = "411563466"
+$DaySpreadsheetId = "1oYLaK2QGK7lOmzWtaNNa1pMSVTW-leyG7O_FjNM-xeQ"
+$NmSpreadsheetId = "1vqbccA2TYLCRi6vcu2xfvVLyZJTpPpxYRUhrA6kCCMg"
+$DayCsv = Join-Path $DataDir "Daytime Scrabble 2026 - latest.csv"
+$NmCsv = Join-Path $DataDir "North Metro Scrabble 2026 - latest.csv"
 $Payload = Join-Path $DataDir "combined_payload.json"
 $RatingsPayload = Join-Path $DataDir "ratings_payload.json"
 $CrossTablesHighlights = Join-Path $DataDir "cross_tables_highlights.json"
@@ -36,6 +39,46 @@ function Require-File {
     }
 }
 
+function Download-GoogleSheetCsv {
+    param(
+        [string]$SpreadsheetId,
+        [string]$Gid,
+        [string]$OutPath,
+        [string]$Description
+    )
+
+    $Url = "https://docs.google.com/spreadsheets/d/$SpreadsheetId/export?format=csv&gid=$Gid"
+    $TempPath = "$OutPath.download"
+
+    Write-Host "Downloading $Description CSV..."
+    Write-Host "  URL: $Url"
+    Write-Host "  Out: $OutPath"
+
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $TempPath -UseBasicParsing
+    }
+    catch {
+        Stop-WithMessage "Could not download $Description CSV. Confirm the sheet is shared for link access. $($_.Exception.Message)"
+    }
+
+    $FirstLine = ""
+    if (Test-Path -LiteralPath $TempPath -PathType Leaf) {
+        $FirstLine = (Get-Content -LiteralPath $TempPath -TotalCount 1 -ErrorAction SilentlyContinue) -join ""
+    }
+
+    if (-not (Test-Path -LiteralPath $TempPath -PathType Leaf) -or ((Get-Item -LiteralPath $TempPath).Length -eq 0)) {
+        Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
+        Stop-WithMessage "Downloaded $Description CSV was empty."
+    }
+
+    if ($FirstLine -match '<!doctype|<html|ServiceLogin|accounts\.google\.com|Sign in') {
+        Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
+        Stop-WithMessage "Google returned an HTML page instead of $Description CSV. The sheet likely requires authenticated access or link sharing is not enabled."
+    }
+
+    Move-Item -LiteralPath $TempPath -Destination $OutPath -Force
+}
+
 Write-Host "Twin Cities Scrabble D1 reload"
 Write-Host "Repo folder: $RepoDir"
 Write-Host "Data folder: $DataDir"
@@ -44,6 +87,9 @@ if (-not (Test-Path -LiteralPath $DataDir -PathType Container)) {
     Write-Host "Creating data folder..."
     New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 }
+
+Download-GoogleSheetCsv $DaySpreadsheetId $SheetGid $DayCsv "Daytime"
+Download-GoogleSheetCsv $NmSpreadsheetId $SheetGid $NmCsv "North Metro"
 
 Require-File $DayCsv "Daytime CSV"
 Require-File $NmCsv "North Metro CSV"
