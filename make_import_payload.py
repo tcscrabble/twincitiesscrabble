@@ -679,12 +679,32 @@ def build_games_from_csv(
             player_name_final = CANONICAL_NAME_MAP.get(current_player, current_player)
             current_session_date = None
 
-            # If the current row also contains game data, keep processing this same row
-            # as a game row below.  Otherwise, skip past the block header rows.
-            date_raw0 = _norm(cell(row, date_idx)) 
-            opp_raw0 = _norm(cell(row, opp_idx)) 
-            ps_raw0 = _norm(cell(row, ps_idx)) 
-            os_raw0 = _norm(cell(row, os_idx))
+            # If a block header row also contains game data, keep processing that row.
+            # For CODE / Full Name blocks, the name row can carry the first game.
+            game_row_idx = i
+            header_game_row = row
+            current_row_has_game = bool(
+                _norm(cell(row, opp_idx))
+                and _norm(cell(row, ps_idx))
+                and _norm(cell(row, os_idx))
+            )
+            if not current_row_has_game and advance > 1:
+                candidate_idx = i + advance - 1
+                if candidate_idx < len(rows):
+                    candidate_row = rows[candidate_idx]
+                    candidate_has_game = bool(
+                        _norm(cell(candidate_row, opp_idx))
+                        and _norm(cell(candidate_row, ps_idx))
+                        and _norm(cell(candidate_row, os_idx))
+                    )
+                    if candidate_has_game:
+                        game_row_idx = candidate_idx
+                        header_game_row = candidate_row
+
+            date_raw0 = _norm(cell(header_game_row, date_idx))
+            opp_raw0 = _norm(cell(header_game_row, opp_idx))
+            ps_raw0 = _norm(cell(header_game_row, ps_idx))
+            os_raw0 = _norm(cell(header_game_row, os_idx))
 
             same_row_has_game = bool(opp_raw0 and ps_raw0 and os_raw0)
 
@@ -692,6 +712,9 @@ def build_games_from_csv(
                 i += advance
                 continue
 
+            if game_row_idx != i:
+                i = game_row_idx
+                row = rows[i]
 
         # otherwise: not a block boundary
 
