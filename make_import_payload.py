@@ -1006,6 +1006,29 @@ def validate_and_filter_games(games: List[Dict[str, Any]], accepted_mismatch_key
 
         reporters = {reporter_for_match(g) for g in rows}
 
+        def third_party_conflict_rows(g, include_reporter=False):
+            reporter = reporter_for_match(g)
+            opponent = norm_name_for_match(g["opponent_name"])
+            checks = [(opponent, reporter)]
+            if include_reporter:
+                checks.append((reporter, opponent))
+            conflict_rows = []
+            seen_conflict_row_ids = set()
+
+            for player_norm, paired_norm in checks:
+                conflict_matches = [
+                    match for match in verified_matches_by_reporter[(session_date, location, player_norm)]
+                    if paired_norm not in match["players"]
+                ]
+
+                for match in conflict_matches:
+                    for row in match["rows"]:
+                        if id(row) not in seen_conflict_row_ids:
+                            conflict_rows.append(row)
+                            seen_conflict_row_ids.add(id(row))
+
+            return conflict_rows
+
         for g in leftover:
             # Keep intentional one-sided visitor games. This covers explicitly
             # marked visitors, session overrides, and known cross-club visitors.
@@ -1028,28 +1051,22 @@ def validate_and_filter_games(games: List[Dict[str, Any]], accepted_mismatch_key
                         issue_type = "WINNER_DISAGREEMENT"
                         break
 
-                issues.append({
-                    "type": issue_type,
-                    "game": g,
-                    "candidates": candidates,
-                })
+                conflict_rows = third_party_conflict_rows(g, include_reporter=True) if not candidates else []
+                if conflict_rows:
+                    issues.append({
+                        "type": "THREE_WAY_CONFLICT",
+                        "game": g,
+                        "candidates": conflict_rows,
+                    })
+                else:
+                    issues.append({
+                        "type": issue_type,
+                        "game": g,
+                        "candidates": candidates,
+                    })
             else:
-                reporter = reporter_for_match(g)
-                opponent = norm_name_for_match(g["opponent_name"])
-                conflict_matches = [
-                    match for match in verified_matches_by_reporter[(session_date, location, opponent)]
-                    if reporter not in match["players"]
-                ]
-
-                if conflict_matches:
-                    conflict_rows = []
-                    seen_conflict_row_ids = set()
-                    for match in conflict_matches:
-                        for row in match["rows"]:
-                            if id(row) not in seen_conflict_row_ids:
-                                conflict_rows.append(row)
-                                seen_conflict_row_ids.add(id(row))
-
+                conflict_rows = third_party_conflict_rows(g)
+                if conflict_rows:
                     issues.append({
                         "type": "THREE_WAY_CONFLICT",
                         "game": g,
@@ -1329,7 +1346,7 @@ def main():
                     f"(source_row={og.get('source_row', 'unknown')})\n"
                 )
         elif item["type"] == "THREE_WAY_CONFLICT":
-            f.write("  Supposed opponent is already in verified match:\n")
+            f.write("  A named player is already in verified match:\n")
             for og in item.get("candidates", []):
                 f.write(
                     f"    {og['player_name']} vs {og['opponent_name']} "
