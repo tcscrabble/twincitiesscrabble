@@ -327,6 +327,20 @@ CANONICAL_NAME_MAP = {
     "Lisa O": "Lisa Odom",
 }
 
+def canonical_name_lookup_key(name: str) -> str:
+    return _norm(name).casefold()
+
+CANONICAL_NAME_LOOKUP = {
+    canonical_name_lookup_key(alias): _norm(full)
+    for alias, full in CANONICAL_NAME_MAP.items()
+}
+CANONICAL_NAME_LOOKUP.update(
+    {
+        canonical_name_lookup_key(full): _norm(full)
+        for full in CANONICAL_NAME_MAP.values()
+    }
+)
+
 # Known players who should be treated as session visitors even when the
 # spreadsheet opponent cell does not include an explicit "(visitor)" marker.
 SESSION_VISITOR_OVERRIDES = {
@@ -378,7 +392,7 @@ def parse_optional_rating_text(value):
 
 def canonical_player_name(name: str) -> str:
     name = _norm(name)
-    return _norm(CANONICAL_NAME_MAP.get(name, name))
+    return _norm(CANONICAL_NAME_LOOKUP.get(canonical_name_lookup_key(name), name))
 
 def read_player_ratings(
     ratings_path: str,
@@ -649,8 +663,8 @@ def build_games_from_csv(
     # in the North Metro file and as a visitor/opponent in the Daytime file.
     # In that case, the Daytime row may legitimately have no matching Jason
     # player block, but we still want to load the game as a known-player game.
-    local_full_name_set = {_norm(CANONICAL_NAME_MAP.get(n, n)) for n in local_full_names}
-    global_full_name_set = {_norm(CANONICAL_NAME_MAP.get(n, n)) for n in full_names}
+    local_full_name_set = {canonical_player_name(n) for n in local_full_names}
+    global_full_name_set = {canonical_player_name(n) for n in full_names}
 
     if global_short_to_full is not None:
         short_to_full = dict(global_short_to_full)
@@ -675,8 +689,8 @@ def build_games_from_csv(
 
         full_name, advance = detect_player_block_name(rows, i, player_idx, cell)
         if full_name:
-            current_player = _norm(full_name)
-            player_name_final = CANONICAL_NAME_MAP.get(current_player, current_player)
+            current_player = canonical_player_name(full_name)
+            player_name_final = current_player
             current_session_date = None
 
             # If a block header row also contains game data, keep processing that row.
@@ -806,7 +820,7 @@ def build_games_from_csv(
 
         opp_key = opponent_short_norm(opp_clean)
         opponent_full = short_to_full.get(opp_key, opp_clean)
-        opponent_name_final = CANONICAL_NAME_MAP.get(opponent_full, opponent_full)
+        opponent_name_final = canonical_player_name(opponent_full)
 
         opponent_name_final = _norm(opponent_name_final)
 
@@ -878,7 +892,7 @@ def build_games_from_csv(
 
 
 def validate_and_filter_games(games: List[Dict[str, Any]], accepted_mismatch_keys: Optional[Set[str]] = None):
-    from collections import defaultdict
+    from collections import Counter, defaultdict
     accepted_mismatch_keys = accepted_mismatch_keys or set()
 
     def norm_name_for_match(name: str) -> str:
@@ -999,18 +1013,25 @@ def validate_and_filter_games(games: List[Dict[str, Any]], accepted_mismatch_key
 
         session_date, location, a_norm, b_norm = key
 
-        rows_by_sig = defaultdict(lambda: defaultdict(list))
+        rows_by_reporter = {
+            a_norm: defaultdict(list),
+            b_norm: defaultdict(list),
+        }
 
         for g in rows:
-            rows_by_sig[canonical_score_sig(g, a_norm)][reporter_for_match(g)].append(g)
+            rows_by_reporter[reporter_for_match(g)][canonical_score_sig(g, a_norm)].append(g)
 
         used_ids = set()
+        a_counts = Counter({sig: len(sig_rows) for sig, sig_rows in rows_by_reporter[a_norm].items()})
+        b_counts = Counter({sig: len(sig_rows) for sig, sig_rows in rows_by_reporter[b_norm].items()})
 
-        for sig in sorted(rows_by_sig):
-            a_rows = rows_by_sig[sig].get(a_norm, [])
-            b_rows = rows_by_sig[sig].get(b_norm, [])
+        # Compare each reporter's complete collection as a multiset. Consuming
+        # identical canonical score pairs one-for-one preserves duplicate games.
+        for sig in sorted(a_counts.keys() | b_counts.keys()):
+            a_rows = rows_by_reporter[a_norm].get(sig, [])
+            b_rows = rows_by_reporter[b_norm].get(sig, [])
 
-            matched_count = min(len(a_rows), len(b_rows))
+            matched_count = min(a_counts[sig], b_counts[sig])
 
             for i in range(matched_count):
                 clean_games.append(a_rows[i])
@@ -1263,8 +1284,7 @@ def main():
         )
 
         for full_name in collect_full_names_from_rows(rows, player_idx, start_row):
-            canonical = CANONICAL_NAME_MAP.get(full_name, full_name)
-            canonical = _norm(canonical)
+            canonical = canonical_player_name(full_name)
             if canonical and canonical not in seen_full:
                 seen_full.add(canonical)
                 all_full_names.append(canonical)

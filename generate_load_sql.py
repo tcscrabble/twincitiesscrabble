@@ -173,6 +173,36 @@ def record_hash(rec: dict) -> str:
     blob = json.dumps(rec, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha1(blob).hexdigest()
 
+def canonical_game_identity(
+    session_date: str,
+    club_key: str,
+    p_key: str,
+    o_key: str,
+    p_score: int,
+    o_score: int,
+) -> dict:
+    player_a, player_b = sorted([p_key, o_key])
+    if p_key == player_a:
+        player_a_score = p_score
+        player_b_score = o_score
+    else:
+        player_a_score = o_score
+        player_b_score = p_score
+
+    return {
+        "session_date": session_date,
+        "location": club_key,
+        "player_a": player_a,
+        "player_b": player_b,
+        "player_a_score": player_a_score,
+        "player_b_score": player_b_score,
+    }
+
+def raw_game_hash(identity: dict, occurrence_index: int = 1) -> str:
+    hash_input = dict(identity)
+    hash_input["occurrence_index"] = occurrence_index
+    return record_hash(hash_input)
+
 def main():
     parser = argparse.ArgumentParser(description="Generate D1 load SQL for Twin Cities Scrabble.")
     parser.add_argument("input_json", type=Path)
@@ -220,6 +250,8 @@ def main():
         if sql:
             lines.append(sql)
 
+    game_occurrence_counts = {}
+
     # Ensure clubs/players exist, then insert games
     for g in games:
         # Basic validation (fail fast but safely)
@@ -260,18 +292,20 @@ def main():
         p_metadata = player_metadata_by_key.get(p_key)
         o_metadata = player_metadata_by_key.get(o_key)
 
-        # Canonical game identity: same real-world game gets same hash
-        player_a, player_b = sorted([p_key, o_key])
-        score_low, score_high = sorted([p_score, o_score])
-
-        raw_hash = record_hash({
-            "session_date": session_date,
-            "location": club_key,
-            "player_a": player_a,
-            "player_b": player_b,
-            "score_low": score_low,
-            "score_high": score_high,
-        })
+        # Canonical game identity: reciprocal reports get the same hash, while
+        # repeated identical games get deterministic distinct occurrence indexes.
+        game_identity = canonical_game_identity(
+            session_date,
+            club_key,
+            p_key,
+            o_key,
+            p_score,
+            o_score,
+        )
+        game_identity_key = tuple(sorted(game_identity.items()))
+        occurrence_index = game_occurrence_counts.get(game_identity_key, 0) + 1
+        game_occurrence_counts[game_identity_key] = occurrence_index
+        raw_hash = raw_game_hash(game_identity, occurrence_index)
 
         # Upsert club
         lines.append(
