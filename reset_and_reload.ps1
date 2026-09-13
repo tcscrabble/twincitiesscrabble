@@ -39,6 +39,16 @@ function Require-File {
     }
 }
 
+function Get-PythonCommand {
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        return @("py", "-3")
+    }
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        return @("python")
+    }
+    Stop-WithMessage "Python was not found. Install Python and ensure either the Windows launcher 'py' or 'python' is available on PATH."
+}
+
 function Download-GoogleSheetCsv {
     param(
         [string]$SpreadsheetId,
@@ -96,6 +106,10 @@ Require-File $NmCsv "North Metro CSV"
 
 Push-Location $RepoDir
 try {
+    $PythonCmd = @(Get-PythonCommand)
+    $PythonExe = $PythonCmd[0]
+    $PythonArgs = if ($PythonCmd.Count -gt 1) { $PythonCmd[1..($PythonCmd.Count - 1)] } else { @() }
+
     Require-File (Join-Path $RepoDir "make_import_payload.py") "make_import_payload.py"
     Require-File (Join-Path $RepoDir "ratings_refresh.py") "ratings_refresh.py"
     Require-File (Join-Path $RepoDir "scan_cross_tables_highlights.py") "scan_cross_tables_highlights.py"
@@ -109,12 +123,12 @@ try {
     Write-Host "  NM:  $NmCsv"
     Write-Host "  Out: $Payload"
     Write-Host "  Accepted mismatches: $AcceptedMismatches"
-    python make_import_payload.py --club "DAY=$DayCsv" --club "NM=$NmCsv" --accepted-mismatches "$AcceptedMismatches" --out "$Payload"
+    & $PythonExe @PythonArgs make_import_payload.py --club "DAY=$DayCsv" --club "NM=$NmCsv" --accepted-mismatches "$AcceptedMismatches" --out "$Payload"
     Stop-IfFailed "make_import_payload.py"
 
     Write-Host "Refreshing external ratings..."
     Write-Host "  Out: $RatingsPayload"
-    python ratings_refresh.py --external-ids "player_external_ids.csv" --players-json "$Payload" --out "$RatingsPayload"
+    & $PythonExe @PythonArgs ratings_refresh.py --external-ids "player_external_ids.csv" --players-json "$Payload" --out "$RatingsPayload"
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "ratings_refresh.py failed. Continuing with an empty ratings payload so game stats can still load."
         '{"ratings":[],"warnings":["ratings_refresh.py failed during reset_and_reload.ps1; game stats load continued"]}' | Set-Content -LiteralPath $RatingsPayload -Encoding UTF8
@@ -123,7 +137,7 @@ try {
     Write-Host "Scanning Cross-tables highlights..."
     Write-Host "  Out: $CrossTablesHighlights"
     Write-Host "  Report: $CrossTablesReport"
-    python scan_cross_tables_highlights.py --players-json "$Payload" --external-ids "player_external_ids.csv" --out "$CrossTablesHighlights" --report "$CrossTablesReport" --warnings "$CrossTablesWarnings" --email-to "lande_hall@yahoo.com" --email-to "dustydame@gmail.com"
+    & $PythonExe @PythonArgs scan_cross_tables_highlights.py --players-json "$Payload" --external-ids "player_external_ids.csv" --out "$CrossTablesHighlights" --report "$CrossTablesReport" --warnings "$CrossTablesWarnings" --email-to "lande_hall@yahoo.com" --email-to "dustydame@gmail.com"
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "scan_cross_tables_highlights.py failed. Continuing so game stats can still load."
         '{"scanned_at":"","tournaments_scanned":[],"highlights":[],"warnings":["scan_cross_tables_highlights.py failed during reset_and_reload.ps1; game stats load continued"]}' | Set-Content -LiteralPath $CrossTablesHighlights -Encoding UTF8
@@ -138,7 +152,7 @@ try {
     Write-Host "  In:  $Payload"
     Write-Host "  Ratings: $RatingsPayload"
     Write-Host "  Out: $LoadSql"
-    python generate_load_sql.py "$Payload" "$LoadSql" --ratings "$RatingsPayload"
+    & $PythonExe @PythonArgs generate_load_sql.py "$Payload" "$LoadSql" --ratings "$RatingsPayload"
     Stop-IfFailed "generate_load_sql.py"
 
     Write-Host "Checking Wrangler login..."

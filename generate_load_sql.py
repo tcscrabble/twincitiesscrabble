@@ -153,7 +153,13 @@ def player_upsert_sql(display_name: str, is_placeholder: int = 0, metadata: dict
     columns = ["player_key", "display_name", "is_placeholder_visitor"]
     values = [sql_quote(key), sql_quote(display_name), str(int(is_placeholder or 0))]
     assignments = [
-        "display_name=excluded.display_name",
+        (
+            "display_name=CASE "
+            "WHEN excluded.display_name = excluded.player_key "
+            "AND players.display_name != players.player_key "
+            "THEN players.display_name "
+            "ELSE excluded.display_name END"
+        ),
         "is_placeholder_visitor=MAX(players.is_placeholder_visitor, excluded.is_placeholder_visitor)",
     ]
 
@@ -161,7 +167,7 @@ def player_upsert_sql(display_name: str, is_placeholder: int = 0, metadata: dict
         for field in PLAYER_RATING_FIELDS:
             columns.append(field)
             values.append(sql_player_rating_value(field, metadata.get(field)))
-            assignments.append(f"{field}=excluded.{field}")
+            assignments.append(f"{field}=COALESCE(excluded.{field}, players.{field})")
 
     return (
         f"INSERT INTO players ({', '.join(columns)}) "
